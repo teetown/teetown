@@ -2,20 +2,17 @@ name: Check style
 
 on:
   push:
-    branches-ignore:
-      - master
-      - staging.tmp
-      - trying.tmp
-      - staging-squash-merge.tmp
+    # branches-ignore:
+    #   - main
   pull_request:
 
 jobs:
   check-style:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
     - name: Prepare
       run: |
         sudo apt-get update -y

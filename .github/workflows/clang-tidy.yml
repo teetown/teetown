@@ -2,20 +2,17 @@ name: Check clang-tidy
 
 on:
   push:
-    branches-ignore:
-      - master
-      - staging.tmp
-      - trying.tmp
-      - staging-squash-merge.tmp
+    # branches-ignore:
+    #   - main
   pull_request:
 
 jobs:
   check-clang-tidy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
 
     - name: Install clang-tidy
       run: |

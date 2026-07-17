@@ -157,12 +157,10 @@ if(NOT MSVC)
   endif()
 
   add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wall)
-  if(CMAKE_VERSION VERSION_GREATER 3.3 OR CMAKE_VERSION VERSION_EQUAL 3.3)
-    add_c_compiler_flag_if_supported(OUR_FLAGS_OWN
-      $<$<COMPILE_LANGUAGE:C>:-Wdeclaration-after-statement>
-      -Wdeclaration-after-statement
-    )
-  endif()
+  add_c_compiler_flag_if_supported(OUR_FLAGS_OWN
+    $<$<COMPILE_LANGUAGE:C>:-Wdeclaration-after-statement>
+    -Wdeclaration-after-statement
+  )
   add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wextra)
   add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wno-unused-parameter)
   add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wno-missing-field-initializers)
@@ -374,8 +372,8 @@ endif()
 
 if(TARGET_OS STREQUAL "windows")
   set(PLATFORM_CLIENT)
-  set(PLATFORM_CLIENT_LIBS opengl32 winmm imm32)
-  set(PLATFORM_LIBS ws2_32) # Windows sockets
+  set(PLATFORM_CLIENT_LIBS opengl32.lib winmm.lib imm32.lib)
+  set(PLATFORM_LIBS ws2_32.lib) # Windows sockets
 elseif(TARGET_OS STREQUAL "mac")
   find_library(CARBON Carbon)
   find_library(COCOA Cocoa)
@@ -388,11 +386,7 @@ elseif(TARGET_OS STREQUAL "mac")
 else()
   set(PLATFORM_CLIENT)
   find_package(OpenGL)
-  if(CMAKE_VERSION VERSION_LESS 3.10)
-    set(PLATFORM_CLIENT_LIBS ${OPENGL_gl_LIBRARY})
-  else()
-    set(PLATFORM_CLIENT_LIBS ${OPENGL_opengl_LIBRARY})
-  endif()
+  set(PLATFORM_CLIENT_LIBS ${OPENGL_gl_LIBRARY})
   set(PLATFORM_CLIENT_INCLUDE_DIRS ${OPENGL_INCLUDE_DIR})
   if(TARGET_OS STREQUAL "linux")
     set(PLATFORM_LIBS rt) # clock_gettime for glibc < 2.17
@@ -406,7 +400,7 @@ endif()
 ########################################################################
 
 if(NOT(GTEST_FOUND) AND DOWNLOAD_GTEST)
-  set(TEETOWN_GTEST_VERSION v1.13.0)
+  set(TEETOWN_GTEST_VERSION v1.16.0)
   configure_file(cmake/Download_GTest_CMakeLists.txt.in googletest-download/CMakeLists.txt)
   execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
     RESULT_VARIABLE result
@@ -1877,8 +1871,6 @@ endif()
 
 if(DEV)
   # Don't generate CPack targets.
-elseif(CMAKE_VERSION VERSION_LESS 3.6 OR CMAKE_VERSION VERSION_EQUAL 3.6)
-  message(WARNING "Cannot create CPack targets, CMake version too old. Use CMake 3.6 or newer.")
 else()
   set(EXTRA_ARGS DESTINATION ${CPACK_PACKAGE_FILE_NAME} COMPONENT portable EXCLUDE_FROM_ALL)
   install(TARGETS ${CPACK_TARGETS} ${EXTRA_ARGS})
