@@ -17,15 +17,11 @@ else()
   message(FATAL_ERROR "Couldn't parse version from src/game/version.h")
 endif()
 
-# Extra support for CMake pre-3.0
-if(NOT POLICY CMP0048)
-  set(PROJECT_VERSION_MAJOR ${VERSION_MAJOR})
-  set(PROJECT_VERSION_MINOR ${VERSION_MINOR})
-  set(PROJECT_VERSION_PATCH ${VERSION_PATCH})
-  set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+if(VERSION_PATCH STREQUAL "0")
+  project(TeeTown VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
+else()
+  project(TeeTown VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 endif()
-
-project(teeworlds VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 set(ORIGINAL_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
 set(ORIGINAL_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
@@ -87,8 +83,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   src/game/version.h
 )
 
-set(SERVER_EXECUTABLE teeworlds_srv CACHE STRING "Name of the built server executable")
-set(CLIENT_EXECUTABLE teeworlds CACHE STRING "Name of the build client executable")
+set(SERVER_EXECUTABLE TeeTown_Server CACHE STRING "Name of the built server executable")
+set(CLIENT_EXECUTABLE TeeTown CACHE STRING "Name of the build client executable")
 
 ########################################################################
 # Download dependencies
@@ -321,7 +317,7 @@ if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   endif()
 endif()
 
-message(STATUS "******** Teeworlds ********")
+message(STATUS "******** TeeTown ********")
 message(STATUS "Target OS: ${TARGET_OS} ${TARGET_BITS}bit")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -354,14 +350,14 @@ show_dependency_status("Wavpack" WAVPACK)
 show_dependency_status("Zlib" ZLIB)
 
 if(NOT(Python3_FOUND))
-  message(SEND_ERROR "You must install Python to compile Teeworlds")
+  message(SEND_ERROR "You must install Python to compile TeeTown")
 endif()
 
 if(CLIENT AND NOT(FREETYPE_FOUND))
-  message(SEND_ERROR "You must install Freetype to compile the Teeworlds client")
+  message(SEND_ERROR "You must install Freetype to compile the TeeTown client")
 endif()
 if(CLIENT AND NOT(SDL2_FOUND))
-  message(SEND_ERROR "You must install SDL2 to compile the Teeworlds client")
+  message(SEND_ERROR "You must install SDL2 to compile the TeeTown client")
 endif()
 if(NOT(GTEST_FOUND))
   if(DOWNLOAD_GTEST)
@@ -410,7 +406,7 @@ endif()
 ########################################################################
 
 if(NOT(GTEST_FOUND) AND DOWNLOAD_GTEST)
-  set(TEEWORLDS_GTEST_VERSION v1.13.0)
+  set(TEETOWN_GTEST_VERSION v1.13.0)
   configure_file(cmake/Download_GTest_CMakeLists.txt.in googletest-download/CMakeLists.txt)
   execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
     RESULT_VARIABLE result
@@ -1528,9 +1524,9 @@ if(CLIENT)
   if(TARGET_OS STREQUAL "windows")
     set(CLIENT_ICON "other/icons/${CLIENT_EXECUTABLE}.rc")
     if(NOT MINGW)
-      set(CLIENT_MANIFEST "other/manifest/teeworlds.manifest")
+      set(CLIENT_MANIFEST "other/manifest/TeeTown.manifest")
     else()
-      set(CLIENT_MANIFEST "other/manifest/teeworlds.rc")
+      set(CLIENT_MANIFEST "other/manifest/TeeTown.rc")
     endif()
   else()
     set(CLIENT_ICON)

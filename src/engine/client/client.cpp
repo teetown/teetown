@@ -2497,9 +2497,9 @@ void CClient::RegisterCommands()
 {
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
 
-	m_pConsole->Register("quit", "", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Quit, this, "Quit Teeworlds");
-	m_pConsole->Register("exit", "", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Quit, this, "Quit Teeworlds");
-	m_pConsole->Register("minimize", "", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Minimize, this, "Minimize Teeworlds");
+	m_pConsole->Register("quit", "", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Quit, this, "Quit TeeTown");
+	m_pConsole->Register("exit", "", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Quit, this, "Quit TeeTown");
+	m_pConsole->Register("minimize", "", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Minimize, this, "Minimize TeeTown");
 	m_pConsole->Register("connect", "s[host|ip]", CFGFLAG_CLIENT|CFGFLAG_STORE, Con_Connect, this, "Connect to the specified host/ip");
 	m_pConsole->Register("disconnect", "", CFGFLAG_CLIENT, Con_Disconnect, this, "Disconnect from the server");
 	m_pConsole->Register("ping", "", CFGFLAG_CLIENT, Con_Ping, this, "Ping the current server");
@@ -2584,9 +2584,9 @@ int main(int argc, const char **argv)
 
 	// create the components
 	int FlagMask = CFGFLAG_CLIENT;
-	IEngine *pEngine = CreateEngine("Teeworlds");
+	IEngine *pEngine = CreateEngine("TeeTown");
 	IConsole *pConsole = CreateConsole(FlagMask);
-	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_CLIENT, argc, argv);
+	IStorage *pStorage = CreateStorage("TeeTown", IStorage::STORAGETYPE_CLIENT, argc, argv);
 	IConfigManager *pConfigManager = CreateConfigManager();
 	IEngineSound *pEngineSound = CreateEngineSound();
 	IEngineInput *pEngineInput = CreateEngineInput();
@@ -2650,8 +2650,7 @@ int main(int argc, const char **argv)
 	if(!UseDefaultConfig)
 	{
 		// execute config file
-		if(!pConsole->ExecuteFile(SETTINGS_FILENAME ".cfg"))
-			pConsole->ExecuteFile("settings.cfg"); // fallback to legacy naming scheme
+		pConsole->ExecuteFile(SETTINGS_FILENAME ".cfg");
 
 		// execute autoexec file
 		pConsole->ExecuteFile("autoexec.cfg");
@@ -2662,7 +2661,7 @@ int main(int argc, const char **argv)
 			const char *pAddress = 0;
 			if(argc == 2)
 			{
-				pAddress = str_startswith(argv[1], "teeworlds:");
+				pAddress = str_startswith(argv[1], "teetown:");
 			}
 			if(pAddress)
 			{

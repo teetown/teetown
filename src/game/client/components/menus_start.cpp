@@ -108,7 +108,7 @@ void CMenus::RenderStartMenu(CUIRect MainView)
 	if(str_comp(Client()->LatestVersion(), "0") != 0)
 	{
 		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), Localize("Teeworlds %s is out! Download it at www.teeworlds.com!"), Client()->LatestVersion());
+		str_format(aBuf, sizeof(aBuf), Localize("TeeTown %s is out!"), Client()->LatestVersion());
 		TextRender()->TextColor(1.0f, 0.4f, 0.4f, 1.0f);
 		TextRender()->TextSecondaryColor(0.0f, 0.0f, 0.0f, 0.5f);
 		UI()->DoLabel(&TopMenu, aBuf, 14.0f, TEXTALIGN_MC, TopMenu.w * 0.9f, true);

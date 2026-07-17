@@ -79,7 +79,7 @@ void runServer()
 		backing: NSBackingStoreBuffered
 		defer: NO];
 
-	[window setTitle: @"Teeworlds Server"];
+	[window setTitle: @"TeeTown Server"];
 
 	view = [[[ServerView alloc] initWithFrame: graphicsRect] autorelease];
 	[view setEditable: NO];
@@ -90,7 +90,7 @@ void runServer()
 	[window makeKeyAndOrderFront: nil];
 
 	[view listenTo: task];
-	[task setLaunchPath: [mainBundle pathForAuxiliaryExecutable: @"teeworlds_srv"]];
+	[task setLaunchPath: [mainBundle pathForAuxiliaryExecutable: @"TeeTown_Server"]];
 	[task setArguments: arguments];
 	[task launch];
 	[NSApp run];

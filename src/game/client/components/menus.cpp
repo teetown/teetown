@@ -730,7 +730,7 @@ void CMenus::RenderLoading(int WorkedAmount)
 	Rect.y += 20;
 	TextRender()->TextColor(CUI::ms_DefaultTextColor);
 	TextRender()->TextSecondaryColor(CUI::ms_DefaultTextOutlineColor);
-	UI()->DoLabel(&Rect, "Teeworlds", 48.0f, TEXTALIGN_CENTER);
+	UI()->DoLabel(&Rect, "TeeTown", 48.0f, TEXTALIGN_CENTER);
 
 	const float Percent = m_LoadCurrent/(float)m_LoadTotal;
 	const float Spacing = 40.0f;
@@ -1183,7 +1183,7 @@ void CMenus::RenderMenu(CUIRect Screen)
 		}
 		else if(m_Popup == POPUP_FIRST_LAUNCH)
 		{
-			pTitle = Localize("Welcome to Teeworlds");
+			pTitle = Localize("Welcome to TeeTown");
 			NumOptions = 6;
 		}
 
