@@ -1,7 +1,4 @@
-/.bam
-/bam
 /build
-/config.lua
 /objs
 /other/*/include
 /other/*/lib
