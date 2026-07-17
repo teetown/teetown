@@ -908,7 +908,6 @@ set(EXPECTED_DATA
   languages/norwegian.json
   languages/polish.json
   languages/portuguese.json
-  languages/readme.txt
   languages/romanian.json
   languages/russian.json
   languages/serbian.json
@@ -969,7 +968,6 @@ set(EXPECTED_DATA
   maps/dm9.map
   maps/license.txt
   maps/lms1.map
-  maps/readme.txt
   particles.png
   race_flag.png
   skins/beaver.json
@@ -1142,32 +1140,14 @@ set(EXPECTED_DATA
   ui/themes/winter_night.map
 )
 
-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/datasrc/languages/index.json)
-  message(WARNING "Missing datasrc/languages submodule. Please download a source release or update your git submodules with `git submodule update --init`")
-  foreach(item ${EXPECTED_DATA})
-    if(item MATCHES "^languages/")
-      list(REMOVE_ITEM EXPECTED_DATA ${item})
-    endif()
-  endforeach()
-endif()
-
-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/datasrc/maps/dm1.map)
-  message(WARNING "Missing datasrc/maps submodule. Please download a source release or update your git submodules with `git submodule update --init`")
-  foreach(item ${EXPECTED_DATA})
-    if(item MATCHES "^maps/")
-      list(REMOVE_ITEM EXPECTED_DATA ${item})
-    endif()
-  endforeach()
-endif()
-
-set_glob(DATA GLOB_RECURSE "json;map;png;rules;ttc;ttf;txt;wv" datasrc ${EXPECTED_DATA})
+set_glob(DATA GLOB_RECURSE "json;map;png;rules;ttc;ttf;txt;wv" data ${EXPECTED_DATA})
 
 ########################################################################
 # COPY DATA AND DLLS
 ########################################################################
 
 foreach(datafile ${DATA})
-  file(RELATIVE_PATH OUT ${PROJECT_SOURCE_DIR}/datasrc ${datafile})
+  file(RELATIVE_PATH OUT ${PROJECT_SOURCE_DIR}/data ${datafile})
   get_filename_component(DESTINATION data/${OUT} PATH)
   file(MAKE_DIRECTORY ${DESTINATION})
   file(COPY ${datafile} DESTINATION ${DESTINATION})
