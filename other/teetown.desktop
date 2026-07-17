@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=TeeTown
+GenericName=Platform Game
+Type=Application
+Terminal=false
+Exec=TeeTown %u
+Icon=teetown
+Comment=TeeTown: Teeworlds but better
+Keywords=game;multiplayer;
+Categories=Game;ArcadeGame;
