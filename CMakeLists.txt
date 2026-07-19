@@ -145,8 +145,8 @@ if(NOT MSVC)
   endif()
 
   if(TARGET_OS STREQUAL "mac")
-    add_c_compiler_flag_if_supported(OUR_FLAGS -stdlib=libc++)
-    add_c_compiler_flag_if_supported(OUR_FLAGS -mmacosx-version-min=10.7)
+    add_c_compiler_flag_if_supported(OUR_FLAGS -mmacosx-version-min=10.7) # TODO: remove
+    add_c_compiler_flag_if_supported(OUR_FLAGS -std=c++17)
   endif()
 
   add_c_compiler_flag_if_supported(OUR_FLAGS_OWN -Wall)
@@ -2090,6 +2090,10 @@ foreach(target ${TARGETS_LINK})
 endforeach()
 
 foreach(target ${TARGETS_OWN})
+  set_property(TARGET ${target} PROPERTY CXX_STANDARD 17)
+  set_property(TARGET ${target} PROPERTY CXX_STANDARD_REQUIRED ON)
+  set_property(TARGET ${target} PROPERTY CXX_EXTENSIONS OFF)
+
   if(MSVC)
     target_compile_options(${target} PRIVATE /W3)
     target_compile_options(${target} PRIVATE /wd4244) # Possible loss of data (float -> int, int -> float, etc.).
