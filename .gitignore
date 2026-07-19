@@ -1,10 +1,5 @@
 /build
 /objs
-/other/*/include
-/other/*/lib
-/other/*/linux
-/other/*/mac
-/other/*/windows
 __pycache__/
 *.dll
 *.dmg
@@ -14,8 +9,6 @@ scripts/work/
 /SDL.dll
 /freetype.dll
 /autoexec.cfg
-other/freetype
-other/sdl
 Info.plist
 
 # IDE project files

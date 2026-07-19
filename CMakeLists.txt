@@ -35,6 +35,22 @@ else()
   set(TARGET_BITS "64")
 endif()
 
+if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm"
+  OR "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "aarch64"
+  OR "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "ARM64")
+  if(TARGET_BITS STREQUAL "32")
+    set(TARGET_CPU_ARCHITECTURE "arm")
+  else()
+    set(TARGET_CPU_ARCHITECTURE "arm64")
+  endif()
+else()
+  if(TARGET_BITS STREQUAL "32")
+    set(TARGET_CPU_ARCHITECTURE "x86")
+  else()
+    set(TARGET_CPU_ARCHITECTURE "x86_64")
+  endif()
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   set(TARGET_OS "windows")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -61,7 +77,6 @@ endif()
 
 option(CLIENT "Compile client" ON)
 option(HEADLESS_CLIENT "Build the client without graphics" OFF)
-option(DOWNLOAD_DEPENDENCIES "Download dependencies (only available on Windows)" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DOWNLOAD_GTEST "Download and compile GTest if not found" ${AUTO_DEPENDENCIES_DEFAULT})
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DEV "Don't generate stuff necessary for packaging" OFF)
@@ -85,28 +100,6 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 
 set(SERVER_EXECUTABLE TeeTown_Server CACHE STRING "Name of the built server executable")
 set(CLIENT_EXECUTABLE TeeTown CACHE STRING "Name of the build client executable")
-
-########################################################################
-# Download dependencies
-########################################################################
-
-find_package(Python3)
-if(DOWNLOAD_DEPENDENCIES)
-  if(Python3_EXECUTABLE AND TARGET_OS STREQUAL "windows" AND TARGET_BITS)
-    set(DOWNLOADS)
-    foreach(d freetype sdl)
-      if(NOT EXISTS "${PROJECT_SOURCE_DIR}/other/${d}/${TARGET_OS}/lib${TARGET_BITS}")
-        list(APPEND DOWNLOADS ${d})
-      endif()
-    endforeach()
-    if(DOWNLOADS)
-      message(STATUS "Downloading Freetype and SDL 2")
-      execute_process(COMMAND ${Python3_EXECUTABLE} scripts/download.py ${DOWNLOADS}
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-      )
-    endif()
-  endif()
-endif()
 
 ########################################################################
 # Compiler flags
@@ -237,6 +230,20 @@ set(TARGETS_LINK) # Targets with a linking stage.
 # DEPENDENCIES
 ########################################################################
 
+if((CMAKE_OSX_ARCHITECTURES STREQUAL "arm64;x86_64" OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64;arm64") AND TARGET_OS STREQUAL "mac")
+  set(OSX_UNIVERSAL ON)
+else()
+  set(OSX_UNIVERSAL OFF)
+endif()
+
+if(OSX_UNIVERSAL)
+  set(LIB_DIR "${TARGET_OS}/libuniversal")
+elseif(TARGET_CPU_ARCHITECTURE STREQUAL "arm" OR TARGET_CPU_ARCHITECTURE STREQUAL "arm64")
+  set(LIB_DIR "${TARGET_OS}/lib${TARGET_CPU_ARCHITECTURE}")
+else()
+  set(LIB_DIR "${TARGET_OS}/lib${TARGET_BITS}")
+endif()
+
 function(set_extra_dirs_lib VARIABLE NAME)
   set("PATHS_${VARIABLE}_LIBDIR" PARENT_SCOPE)
   set("HINTS_${VARIABLE}_LIBDIR" PARENT_SCOPE)
@@ -246,7 +253,7 @@ function(set_extra_dirs_lib VARIABLE NAME)
     set(TYPE PATHS)
   endif()
   if(TARGET_BITS AND TARGET_OS)
-    set(DIR "other/${NAME}/${TARGET_OS}/lib${TARGET_BITS}")
+    set(DIR "teetown-libs/${NAME}/${LIB_DIR}")
     set("${TYPE}_${VARIABLE}_LIBDIR" "${DIR}" PARENT_SCOPE)
     set("EXTRA_${VARIABLE}_LIBDIR" "${DIR}" PARENT_SCOPE)
   endif()
@@ -257,7 +264,7 @@ function(set_extra_dirs_include VARIABLE NAME LIBRARY)
   set("HINTS_${VARIABLE}_INCLUDEDIR" PARENT_SCOPE)
   is_bundled(IS_BUNDLED "${LIBRARY}")
   if(IS_BUNDLED)
-    set("HINTS_${VARIABLE}_INCLUDEDIR" "other/${NAME}/include" "other/${NAME}/include/${TARGET_OS}" PARENT_SCOPE)
+    set("HINTS_${VARIABLE}_INCLUDEDIR" "teetown-libs/${NAME}/include" "teetown-libs/${NAME}/include/${TARGET_OS}" PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -291,10 +298,10 @@ find_package(Freetype)
 find_package(Git)
 find_package(GTest)
 find_package(Pnglite)
+find_package(Python3)
 find_package(SDL2)
 find_package(Threads)
 find_package(Wavpack)
-
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(CMAKE_OTOOL otool)
@@ -1825,6 +1832,7 @@ set(CPACK_SOURCE_FILES
   CMakeLists.txt
   cmake/
   datasrc/
+  teetown-libs/
   license.txt
   other/
   readme.md
