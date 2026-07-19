@@ -8,6 +8,6 @@
 #define GAME_NETVERSION "0.7 " GAME_NETVERSION_HASH_FORCED
 #define CLIENT_VERSION 0x0705
 #define PREV_CLIENT_VERSION 0x0704
-#define SETTINGS_FILENAME "settings07"
+#define SETTINGS_FILENAME "settings"
 static const char GAME_RELEASE_VERSION[8] = "0.7.5";
 #endif
