@@ -1335,7 +1335,6 @@ set_src(GAME_SHARED GLOB src/game
   layers.h
   mapitems.h
   tuning.h
-  variables.h
   version.h
   voting.h
 )
