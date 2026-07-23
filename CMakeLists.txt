@@ -382,7 +382,7 @@ elseif(TARGET_OS STREQUAL "mac")
   find_library(COCOA Cocoa)
   find_library(OPENGL OpenGL)
   set(PLATFORM_CLIENT
-    src/macoslaunch/client.m
+    src/macos/client.mm
   )
   set(PLATFORM_CLIENT_LIBS ${COCOA} ${OPENGL})
   set(PLATFORM_LIBS ${CARBON})
@@ -1647,7 +1647,7 @@ if(SERVER)
   list(APPEND TARGETS_LINK game-server)
 
   if(TARGET_OS AND TARGET_OS STREQUAL "mac")
-    set(SERVER_LAUNCHER_SRC src/macoslaunch/server.mm)
+    set(SERVER_LAUNCHER_SRC src/macos/server.mm)
     add_executable(game-server-launcher ${SERVER_LAUNCHER_SRC})
     set_property(TARGET game-server-launcher
         PROPERTY OUTPUT_NAME ${SERVER_EXECUTABLE}-Launcher
