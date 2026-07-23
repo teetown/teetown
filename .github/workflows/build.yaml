@@ -45,7 +45,7 @@ jobs:
         brew update
         brew install ninja pkg-config sdl2
         brew upgrade freetype
-        # pip3 install --break-system-packages dmgbuild
+        # pip3 install --break-system-packages dmgbuild pyobjc-framework-Quartz
         echo /Library/Frameworks/Python.framework/Versions/3.12/bin >> $GITHUB_PATH
         sudo rm -rf /Library/Developer/CommandLineTools
 
@@ -63,7 +63,7 @@ jobs:
     - name: Run debug server
       run: |
         cd debug
-        ./TeeTown_Server shutdown
+        ./TeeTown-Server shutdown
 
     - name: Build in release mode
       run: |
@@ -78,7 +78,7 @@ jobs:
     - name: Run release server
       run: |
         cd release
-        ./TeeTown_Server shutdown
+        ./TeeTown-Server shutdown
 
     - name: Package
       run: |

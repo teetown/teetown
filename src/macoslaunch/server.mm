@@ -90,7 +90,7 @@ void runServer()
 	[window makeKeyAndOrderFront: nil];
 
 	[view listenTo: task];
-	[task setLaunchPath: [mainBundle pathForAuxiliaryExecutable: @"TeeTown_Server"]];
+	[task setLaunchPath: [mainBundle pathForAuxiliaryExecutable: @"TeeTown-Server"]];
 	[task setArguments: arguments];
 	[task launch];
 	[NSApp run];

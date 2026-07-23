@@ -1844,7 +1844,7 @@ int main(int argc, const char **argv)
 
 	// create the components
 	int FlagMask = CFGFLAG_SERVER|CFGFLAG_ECON;
-	IEngine *pEngine = CreateEngine("TeeTown_Server");
+	IEngine *pEngine = CreateEngine("TeeTown-Server");
 	IEngineMap *pEngineMap = CreateEngineMap();
 	IMapChecker *pMapChecker = CreateMapChecker();
 	IGameServer *pGameServer = CreateGameServer();
