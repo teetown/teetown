@@ -333,7 +333,7 @@ if(TARGET_OS AND TARGET_OS STREQUAL "mac")
 endif()
 
 message(STATUS "******** TeeTown ********")
-message(STATUS "Target OS: ${TARGET_OS} ${TARGET_BITS}bit")
+message(STATUS "Target OS: ${TARGET_OS} ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
