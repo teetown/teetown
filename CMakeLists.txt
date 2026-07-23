@@ -87,6 +87,17 @@ option(DOWNLOAD_GTEST "Download and compile GTest if not found" ${AUTO_DEPENDENC
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DEV "Don't generate stuff necessary for packaging" OFF)
 
+option(MACOS_CODESIGN "Whether to sign code when building the DMG on macOS" OFF)
+
+if(TARGET_OS STREQUAL "mac" AND MACOS_CODESIGN STREQUAL ON)
+  if(DEFINED ENV{MACOS_APP_IDENTITY})
+    set(MACOS_APP_IDENTITY "$ENV{MACOS_APP_IDENTITY}")
+  else()
+    message(WARNING "MACOS_APP_IDENTITY environment variable not set. Using ad-hoc signature")
+    set(MACOS_APP_IDENTITY "-") # ad-hoc signature
+  endif()
+endif()
+
 # Set version if not explicitly set
 if(NOT VERSION)
   set(VERSION ${PROJECT_VERSION})
@@ -1972,6 +1983,32 @@ if(CLIENT AND DMGBUILD_FOUND)
     list(APPEND DMG_MKDIR_COMMANDS COMMAND ${CMAKE_COMMAND} -E make_directory ${DMG_TMPDIR}/${dir})
   endforeach()
 
+  if(NOT MACOS_CODESIGN STREQUAL OFF)
+    set(CODESIGN_COMMANDS
+        COMMAND codesign --force --options runtime --timestamp --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/SDL2.framework
+        COMMAND codesign --force --options runtime --timestamp --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/libfreetype.6.dylib
+
+        COMMAND codesign --force --options runtime --timestamp --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/MacOS/${CLIENT_EXECUTABLE}
+
+        COMMAND codesign --force --options runtime --timestamp --deep --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app
+
+        # Verify signature
+        COMMAND codesign --verify --deep --strict --verbose=2 "${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app"
+    )
+    if(SERVER)
+      list(APPEND CODESIGN_COMMANDS
+        COMMAND codesign --force --options runtime --timestamp --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/MacOS/${SERVER_EXECUTABLE}
+        COMMAND codesign --force --options runtime --timestamp --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${SERVER_EXECUTABLE}.app/Contents/MacOS/${SERVER_EXECUTABLE}
+
+        COMMAND codesign --force --options runtime --timestamp --deep --sign "${MACOS_APP_IDENTITY}" ${DMG_TMPDIR}/${SERVER_EXECUTABLE}.app
+        # Verify signature
+        COMMAND codesign --verify --deep --strict --verbose=2 "${DMG_TMPDIR}/${SERVER_EXECUTABLE}.app"
+      )
+    endif()
+  else()
+    set(CODESIGN_COMMANDS)
+  endif()
+
   if(SERVER)
     set(DMG_SERVER_COMMANDS
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/data/maps ${DMG_TMPDIR}/${SERVER_EXECUTABLE}.app/Contents/Resources/data/maps
@@ -2013,6 +2050,8 @@ if(CLIENT AND DMGBUILD_FOUND)
 
     # SERVER
     ${DMG_SERVER_COMMANDS}
+
+    ${CODESIGN_COMMANDS}
 
     # DMG
     ${DMGBUILD_COMMAND}
