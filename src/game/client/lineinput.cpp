@@ -276,6 +276,8 @@ bool CLineInput::ProcessInput(const IInput::CEvent &Event)
 						m_SelectionStart = m_CursorPos;
 					else if(m_SelectionEnd == OldCursorPos)
 						m_SelectionEnd = m_CursorPos;
+					if(m_SelectionStart > m_SelectionEnd)
+						std::swap(m_SelectionStart, m_SelectionEnd);
 				}
 			}
 
@@ -297,6 +299,8 @@ bool CLineInput::ProcessInput(const IInput::CEvent &Event)
 						m_SelectionEnd = m_CursorPos;
 					else if(m_SelectionStart == OldCursorPos)
 						m_SelectionStart = m_CursorPos;
+					if(m_SelectionStart > m_SelectionEnd)
+						std::swap(m_SelectionStart, m_SelectionEnd);
 				}
 			}
 
