@@ -7,6 +7,8 @@
 #include <engine/console.h>
 #include <engine/storage.h>
 
+#include <vector>
+
 void CTilesetMapper::Load(const json_value &rElement)
 {
 	for(unsigned i = 0; i < rElement.u.array.length; ++i)
@@ -93,38 +95,38 @@ void CTilesetMapper::Load(const json_value &rElement)
 					else
 						Condition.m_Value = CRuleCondition::EMPTY;
 
-					NewRule.m_aConditions.add(Condition);
+					NewRule.m_vConditions.push_back(Condition);
 				}
 			}
 
-			NewRuleSet.m_aRules.add(NewRule);
+			NewRuleSet.m_vRules.push_back(NewRule);
 		}
 
-		m_aRuleSets.add(NewRuleSet);
+		m_vRuleSets.push_back(NewRuleSet);
 	}
 }
 
 const char *CTilesetMapper::GetRuleSetName(int Index) const
 {
-	if(Index < 0 || Index >= m_aRuleSets.size())
+	if(Index < 0 || Index >= (int)m_vRuleSets.size())
 		return "";
 
-	return m_aRuleSets[Index].m_aName;
+	return m_vRuleSets[Index].m_aName;
 }
 
 void CTilesetMapper::Proceed(CLayerTiles *pLayer, int ConfigID, RECTi Area)
 {
-	if(pLayer->m_Readonly || ConfigID < 0 || ConfigID >= m_aRuleSets.size())
+	if(pLayer->m_Readonly || ConfigID < 0 || ConfigID >= (int)m_vRuleSets.size())
 		return;
 
-	CRuleSet *pConf = &m_aRuleSets[ConfigID];
+	const CRuleSet &Conf = m_vRuleSets[ConfigID];
 
-	if(!pConf->m_aRules.size())
+	if(Conf.m_vRules.empty())
 		return;
 
 	pLayer->Clamp(&Area);
 
-	int BaseTile = pConf->m_BaseTile;
+	int BaseTile = Conf.m_BaseTile;
 
 	// auto map !
 	int MaxIndex = pLayer->m_Width * pLayer->m_Height;
@@ -137,51 +139,51 @@ void CTilesetMapper::Proceed(CLayerTiles *pLayer, int ConfigID, RECTi Area)
 
 			pTile->m_Index = BaseTile;
 
-			for(int i = 0; i < pConf->m_aRules.size(); ++i)
+			for(int i = 0; i < (int)Conf.m_vRules.size(); ++i)
 			{
 				bool RespectRules = true;
-				for(int j = 0; j < pConf->m_aRules[i].m_aConditions.size() && RespectRules; ++j)
+				for(int j = 0; j < (int)Conf.m_vRules[i].m_vConditions.size() && RespectRules; ++j)
 				{
-					CRuleCondition *pCondition = &pConf->m_aRules[i].m_aConditions[j];
-					int CheckIndex = clamp((y + pCondition->m_Y), 0, pLayer->m_Height - 1) * pLayer->m_Width + clamp((x + pCondition->m_X), 0, pLayer->m_Width - 1);
+					const CRuleCondition &Condition = Conf.m_vRules[i].m_vConditions[j];
+					int CheckIndex = clamp((y + Condition.m_Y), 0, pLayer->m_Height - 1) * pLayer->m_Width + clamp((x + Condition.m_X), 0, pLayer->m_Width - 1);
 
 					if(CheckIndex < 0 || CheckIndex >= MaxIndex)
 						RespectRules = false;
 					else
 					{
-						if(pCondition->m_Value == CRuleCondition::EMPTY || pCondition->m_Value == CRuleCondition::FULL)
+						if(Condition.m_Value == CRuleCondition::EMPTY || Condition.m_Value == CRuleCondition::FULL)
 						{
-							if(pLayer->m_pTiles[CheckIndex].m_Index > 0 && pCondition->m_Value == CRuleCondition::EMPTY)
+							if(pLayer->m_pTiles[CheckIndex].m_Index > 0 && Condition.m_Value == CRuleCondition::EMPTY)
 								RespectRules = false;
 
-							if(pLayer->m_pTiles[CheckIndex].m_Index == 0 && pCondition->m_Value == CRuleCondition::FULL)
+							if(pLayer->m_pTiles[CheckIndex].m_Index == 0 && Condition.m_Value == CRuleCondition::FULL)
 								RespectRules = false;
 						}
 						else
 						{
-							if(pLayer->m_pTiles[CheckIndex].m_Index != pCondition->m_Value)
+							if(pLayer->m_pTiles[CheckIndex].m_Index != Condition.m_Value)
 								RespectRules = false;
 						}
 					}
 				}
 
-				if(RespectRules && (pConf->m_aRules[i].m_Random <= 1 || (int)(random_float() * pConf->m_aRules[i].m_Random) == 1))
+				if(RespectRules && (Conf.m_vRules[i].m_Random <= 1 || (int)(random_float() * Conf.m_vRules[i].m_Random) == 1))
 				{
-					pTile->m_Index = pConf->m_aRules[i].m_Index;
+					pTile->m_Index = Conf.m_vRules[i].m_Index;
 					pTile->m_Flags = 0;
 
 					// rotate
-					if(pConf->m_aRules[i].m_Rotation == 90)
+					if(Conf.m_vRules[i].m_Rotation == 90)
 						pTile->m_Flags ^= TILEFLAG_ROTATE;
-					else if(pConf->m_aRules[i].m_Rotation == 180)
+					else if(Conf.m_vRules[i].m_Rotation == 180)
 						pTile->m_Flags ^= (TILEFLAG_HFLIP | TILEFLAG_VFLIP);
-					else if(pConf->m_aRules[i].m_Rotation == 270)
+					else if(Conf.m_vRules[i].m_Rotation == 270)
 						pTile->m_Flags ^= (TILEFLAG_HFLIP | TILEFLAG_VFLIP | TILEFLAG_ROTATE);
 
 					// flip
-					if(pConf->m_aRules[i].m_HFlip)
+					if(Conf.m_vRules[i].m_HFlip)
 						pTile->m_Flags ^= pTile->m_Flags & TILEFLAG_ROTATE ? TILEFLAG_HFLIP : TILEFLAG_VFLIP;
-					if(pConf->m_aRules[i].m_VFlip)
+					if(Conf.m_vRules[i].m_VFlip)
 						pTile->m_Flags ^= pTile->m_Flags & TILEFLAG_ROTATE ? TILEFLAG_VFLIP : TILEFLAG_HFLIP;
 				}
 			}
@@ -279,25 +281,25 @@ void CDoodadsMapper::Load(const json_value &rElement)
 					NewRule.m_Location = CRule::WALLS;
 			}
 
-			NewRuleSet.m_aRules.add(NewRule);
+			NewRuleSet.m_vRules.push_back(NewRule);
 		}
 
-		m_aRuleSets.add(NewRuleSet);
+		m_vRuleSets.push_back(NewRuleSet);
 	}
 
 	// sort
-	for(int i = 0; i < m_aRuleSets.size(); i++)
+	for(CRuleSet &RuleSet : m_vRuleSets)
 	{
-		std::stable_sort(&m_aRuleSets[i].m_aRules[0], &m_aRuleSets[i].m_aRules[m_aRuleSets[i].m_aRules.size()]);
+		std::stable_sort(RuleSet.m_vRules.begin(), RuleSet.m_vRules.end());
 	}
 }
 
 const char *CDoodadsMapper::GetRuleSetName(int Index) const
 {
-	if(Index < 0 || Index >= m_aRuleSets.size())
+	if(Index < 0 || Index >= (int)m_vRuleSets.size())
 		return "";
 
-	return m_aRuleSets[Index].m_aName;
+	return m_vRuleSets[Index].m_aName;
 }
 
 void CDoodadsMapper::AnalyzeGameLayer()
@@ -305,31 +307,31 @@ void CDoodadsMapper::AnalyzeGameLayer()
 	// the purpose of this is to detect game layer collision's edges to place doodads according to them
 
 	// clear existing edges
-	m_FloorIDs.clear();
-	m_CeilingIDs.clear();
-	m_RightWallIDs.clear();
-	m_LeftWallIDs.clear();
+	m_vvFloorIds.clear();
+	m_vvCeilingIds.clear();
+	m_vvRightWallIds.clear();
+	m_vvLeftWallIds.clear();
 
-	CLayerGame *pLayer = m_pEditor->m_Map.m_pGameLayer;
+	const CLayerGame &Layer = *m_pEditor->m_Map.m_pGameLayer;
 
 	bool FloorKeepChaining = false;
 	bool CeilingKeepChaining = false;
-	int FloorChainID = 0;
-	int CeilingChainID = 0;
+	int FloorChainId = 0;
+	int CeilingChainId = 0;
 
 	// floors and ceilings
 	// browse up to down
-	for(int y = 1; y < pLayer->m_Height - 1; y++)
+	for(int y = 1; y < Layer.m_Height - 1; y++)
 	{
 		FloorKeepChaining = false;
 		CeilingKeepChaining = false;
 
-		for(int x = 1; x < pLayer->m_Width - 1; x++)
+		for(int x = 1; x < Layer.m_Width - 1; x++)
 		{
-			CTile *pTile = &(pLayer->m_pTiles[y * pLayer->m_Width + x]);
+			const CTile &Tile = (Layer.m_pTiles[y * Layer.m_Width + x]);
 
 			// empty, skip
-			if(pTile->m_Index == 0)
+			if(Tile.m_Index == 0)
 			{
 				FloorKeepChaining = false;
 				CeilingKeepChaining = false;
@@ -337,46 +339,46 @@ void CDoodadsMapper::AnalyzeGameLayer()
 			}
 
 			// check up
-			int CheckIndex = (y - 1) * pLayer->m_Width + x;
+			int CheckIndex = (y - 1) * Layer.m_Width + x;
 
 			// add a floor part
-			if(pTile->m_Index == 1 && (pLayer->m_pTiles[CheckIndex].m_Index == 0 || pLayer->m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
+			if(Tile.m_Index == 1 && (Layer.m_pTiles[CheckIndex].m_Index == 0 || Layer.m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
 			{
 				// create an new chain
 				if(!FloorKeepChaining)
 				{
-					array<int> aChain;
-					aChain.add(y * pLayer->m_Width + x);
-					FloorChainID = m_FloorIDs.add(aChain);
+					std::vector<int> vChain{y * Layer.m_Width + x};
+					m_vvFloorIds.push_back(vChain);
+					FloorChainId = (int)m_vvFloorIds.size() - 1;
 					FloorKeepChaining = true;
 				}
 				else
 				{
 					// keep chaining
-					m_FloorIDs[FloorChainID].add(y * pLayer->m_Width + x);
+					m_vvFloorIds[FloorChainId].push_back(y * Layer.m_Width + x);
 				}
 			}
 			else
 				FloorKeepChaining = false;
 
 			// check down
-			CheckIndex = (y + 1) * pLayer->m_Width + x;
+			CheckIndex = (y + 1) * Layer.m_Width + x;
 
 			// add a ceiling part
-			if(pTile->m_Index == 1 && (pLayer->m_pTiles[CheckIndex].m_Index == 0 || pLayer->m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
+			if(Tile.m_Index == 1 && (Layer.m_pTiles[CheckIndex].m_Index == 0 || Layer.m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
 			{
 				// create an new chain
 				if(!CeilingKeepChaining)
 				{
-					array<int> aChain;
-					aChain.add(y * pLayer->m_Width + x);
-					CeilingChainID = m_CeilingIDs.add(aChain);
+					std::vector<int> vChain{y * Layer.m_Width + x};
+					m_vvCeilingIds.push_back(vChain);
+					CeilingChainId = (int)m_vvCeilingIds.size() - 1;
 					CeilingKeepChaining = true;
 				}
 				else
 				{
 					// keep chaining
-					m_CeilingIDs[CeilingChainID].add(y * pLayer->m_Width + x);
+					m_vvCeilingIds[CeilingChainId].push_back(y * Layer.m_Width + x);
 				}
 			}
 			else
@@ -386,19 +388,19 @@ void CDoodadsMapper::AnalyzeGameLayer()
 
 	bool RWallKeepChaining = false;
 	bool LWallKeepChaining = false;
-	int RWallChainID = 0;
-	int LWallChainID = 0;
+	int RWallChainId = 0;
+	int LWallChainId = 0;
 
 	// walls
 	// browse left to right
-	for(int x = 1; x < pLayer->m_Width - 1; x++)
+	for(int x = 1; x < Layer.m_Width - 1; x++)
 	{
 		RWallKeepChaining = false;
 		LWallKeepChaining = false;
 
-		for(int y = 1; y < pLayer->m_Height - 1; y++)
+		for(int y = 1; y < Layer.m_Height - 1; y++)
 		{
-			CTile *pTile = &(pLayer->m_pTiles[y * pLayer->m_Width + x]);
+			CTile *pTile = &(Layer.m_pTiles[y * Layer.m_Width + x]);
 
 			if(pTile->m_Index == 0)
 			{
@@ -408,46 +410,46 @@ void CDoodadsMapper::AnalyzeGameLayer()
 			}
 
 			// check right
-			int CheckIndex = y * pLayer->m_Width + (x + 1);
+			int CheckIndex = y * Layer.m_Width + (x + 1);
 
 			// add a right wall part
-			if(pTile->m_Index == 1 && (pLayer->m_pTiles[CheckIndex].m_Index == 0 || pLayer->m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
+			if(pTile->m_Index == 1 && (Layer.m_pTiles[CheckIndex].m_Index == 0 || Layer.m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
 			{
 				// create an new chain
 				if(!RWallKeepChaining)
 				{
-					array<int> aChain;
-					aChain.add(y * pLayer->m_Width + x);
-					RWallChainID = m_RightWallIDs.add(aChain);
+					std::vector<int> vChain{y * Layer.m_Width + x};
+					m_vvRightWallIds.push_back(vChain);
+					RWallChainId = (int)m_vvRightWallIds.size() - 1;
 					RWallKeepChaining = true;
 				}
 				else
 				{
 					// keep chaining
-					m_RightWallIDs[RWallChainID].add(y * pLayer->m_Width + x);
+					m_vvRightWallIds[RWallChainId].push_back(y * Layer.m_Width + x);
 				}
 			}
 			else
 				RWallKeepChaining = false;
 
 			// check left
-			CheckIndex = y * pLayer->m_Width + (x - 1);
+			CheckIndex = y * Layer.m_Width + (x - 1);
 
 			// add a left wall part
-			if(pTile->m_Index == 1 && (pLayer->m_pTiles[CheckIndex].m_Index == 0 || pLayer->m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
+			if(pTile->m_Index == 1 && (Layer.m_pTiles[CheckIndex].m_Index == 0 || Layer.m_pTiles[CheckIndex].m_Index > ENTITY_OFFSET))
 			{
 				// create an new chain
 				if(!LWallKeepChaining)
 				{
-					array<int> aChain;
-					aChain.add(y * pLayer->m_Width + x);
-					LWallChainID = m_LeftWallIDs.add(aChain);
+					std::vector<int> vChain{y * Layer.m_Width + x};
+					m_vvLeftWallIds.push_back(vChain);
+					LWallChainId = (int)m_vvLeftWallIds.size() - 1;
 					LWallKeepChaining = true;
 				}
 				else
 				{
 					// keep chaining
-					m_LeftWallIDs[LWallChainID].add(y * pLayer->m_Width + x);
+					m_vvLeftWallIds[LWallChainId].push_back(y * Layer.m_Width + x);
 				}
 			}
 			else
@@ -456,44 +458,27 @@ void CDoodadsMapper::AnalyzeGameLayer()
 	}
 
 	// clean up too small chains
-	for(int i = 0; i < m_FloorIDs.size(); i++)
-	{
-		if(m_FloorIDs[i].size() < 3)
-		{
-			m_FloorIDs.remove_index_fast(i);
-			i--;
-		}
-	}
+	auto RemoveSmallChains = [](std::vector<std::vector<int>> &vvChains) {
+		vvChains.erase(
+			std::remove_if(vvChains.begin(), vvChains.end(),
+				[](const std::vector<int> &vChain) {
+					return vChain.size() < 3;
+				}),
+			vvChains.end());
+		/* TODO: Use this in C++20
+		std::erase_if(vvChains, [](const std::vector<int> &vChain) {
+			return vChain.size() < 3;
+		});
+		*/
+	};
 
-	for(int i = 0; i < m_CeilingIDs.size(); i++)
-	{
-		if(m_CeilingIDs[i].size() < 3)
-		{
-			m_CeilingIDs.remove_index_fast(i);
-			i--;
-		}
-	}
-
-	for(int i = 0; i < m_RightWallIDs.size(); i++)
-	{
-		if(m_RightWallIDs[i].size() < 3)
-		{
-			m_RightWallIDs.remove_index_fast(i);
-			i--;
-		}
-	}
-
-	for(int i = 0; i < m_LeftWallIDs.size(); i++)
-	{
-		if(m_LeftWallIDs[i].size() < 3)
-		{
-			m_LeftWallIDs.remove_index_fast(i);
-			i--;
-		}
-	}
+	RemoveSmallChains(m_vvFloorIds);
+	RemoveSmallChains(m_vvCeilingIds);
+	RemoveSmallChains(m_vvRightWallIds);
+	RemoveSmallChains(m_vvLeftWallIds);
 }
 
-void CDoodadsMapper::PlaceDoodads(CLayerTiles *pLayer, CRule *pRule, array<array<int>> *pPositions, int Amount, int LeftWall)
+void CDoodadsMapper::PlaceDoodads(CLayerTiles *pLayer, CRule *pRule, std::vector<std::vector<int>> *pPositions, int Amount, int LeftWall)
 {
 	if(pRule->m_Location == CRule::CEILING)
 		pRule->m_RelativePos.y++;
@@ -519,13 +504,13 @@ void CDoodadsMapper::PlaceDoodads(CLayerTiles *pLayer, CRule *pRule, array<array
 	if(pRule->m_Random > 1 && RandomValue <= 1)
 		RandomValue = 2;
 
-	for(int f = 0; f < pPositions->size(); f++)
-		for(int c = 0; c < (*pPositions)[f].size(); c += pRule->m_Size.x)
+	for(int f = 0; f < (int)pPositions->size(); f++)
+		for(int c = 0; c < (int)(*pPositions)[f].size(); c += pRule->m_Size.x)
 		{
-			if((pRule->m_Location == CRule::FLOOR || pRule->m_Location == CRule::CEILING) && (*pPositions)[f].size() - c < pRule->m_Size.x)
+			if((pRule->m_Location == CRule::FLOOR || pRule->m_Location == CRule::CEILING) && (int)(*pPositions)[f].size() - c < pRule->m_Size.x)
 				break;
 
-			if(pRule->m_Location == CRule::WALLS && (*pPositions)[f].size() - c < pRule->m_Size.y)
+			if(pRule->m_Location == CRule::WALLS && (int)(*pPositions)[f].size() - c < pRule->m_Size.y)
 				break;
 
 			if(RandomValue > 1 && !IAutoMapper::Random(RandomValue))
@@ -613,42 +598,42 @@ void CDoodadsMapper::PlaceDoodads(CLayerTiles *pLayer, CRule *pRule, array<array
 			// make the place occupied
 			if(RandomValue > 1)
 			{
-				array<int> aChainBefore;
-				array<int> aChainAfter;
+				std::vector<int> vChainBefore;
+				std::vector<int> vChainAfter;
 
 				for(int j = 0; j < c; j++)
-					aChainBefore.add((*pPositions)[f][j]);
+					vChainBefore.push_back((*pPositions)[f][j]);
 
 				int Size = pRule->m_Size.x;
 				if(pRule->m_Location == CRule::WALLS)
 					Size = pRule->m_Size.y;
 
-				for(int j = c + Size; j < (*pPositions)[f].size(); j++)
-					aChainAfter.add((*pPositions)[f][j]);
+				for(int j = c + Size; j < (int)(*pPositions)[f].size(); j++)
+					vChainAfter.push_back((*pPositions)[f][j]);
 
-				pPositions->remove_index(f);
+				pPositions->erase(pPositions->begin() + f);
 
 				// f changes, reset c
 				c = -1;
 
-				if(aChainBefore.size() > 1)
-					pPositions->add(aChainBefore);
-				if(aChainAfter.size() > 1)
-					pPositions->add(aChainAfter);
+				if(vChainBefore.size() > 1)
+					pPositions->push_back(vChainBefore);
+				if(vChainAfter.size() > 1)
+					pPositions->push_back(vChainAfter);
 			}
 		}
 }
 
 void CDoodadsMapper::Proceed(CLayerTiles *pLayer, int ConfigID, int Amount)
 {
-	if(pLayer->m_Readonly || ConfigID < 0 || ConfigID >= m_aRuleSets.size())
+	if(pLayer->m_Readonly || ConfigID < 0 || ConfigID >= (int)m_vRuleSets.size())
 		return;
 
 	AnalyzeGameLayer();
 
-	CRuleSet *pConf = &m_aRuleSets[ConfigID];
+	CRuleSet &Conf = m_vRuleSets[ConfigID];
 
-	if(!pConf->m_aRules.size())
+	if(Conf.m_vRules.empty())
 		return;
 
 	int MaxIndex = pLayer->m_Width * pLayer->m_Height;
@@ -661,32 +646,30 @@ void CDoodadsMapper::Proceed(CLayerTiles *pLayer, int ConfigID, int Amount)
 	}
 
 	// place doodads
-	for(int i = 0; i < pConf->m_aRules.size(); i++)
+	for(CRule &Rule : Conf.m_vRules)
 	{
-		CRule *pRule = &pConf->m_aRules[i];
-
 		// floors
-		if(pRule->m_Location == CRule::FLOOR && m_FloorIDs.size() > 0)
+		if(Rule.m_Location == CRule::FLOOR && !m_vvFloorIds.empty())
 		{
-			PlaceDoodads(pLayer, pRule, &m_FloorIDs, Amount);
+			PlaceDoodads(pLayer, &Rule, &m_vvFloorIds, Amount);
 		}
 
 		// ceilings
-		if(pRule->m_Location == CRule::CEILING && m_CeilingIDs.size() > 0)
+		if(Rule.m_Location == CRule::CEILING && !m_vvCeilingIds.empty())
 		{
-			PlaceDoodads(pLayer, pRule, &m_CeilingIDs, Amount);
+			PlaceDoodads(pLayer, &Rule, &m_vvCeilingIds, Amount);
 		}
 
 		// right walls
-		if(pRule->m_Location == CRule::WALLS && m_RightWallIDs.size() > 0)
+		if(Rule.m_Location == CRule::WALLS && !m_vvRightWallIds.empty())
 		{
-			PlaceDoodads(pLayer, pRule, &m_RightWallIDs, Amount);
+			PlaceDoodads(pLayer, &Rule, &m_vvRightWallIds, Amount);
 		}
 
 		// left walls
-		if(pRule->m_Location == CRule::WALLS && m_LeftWallIDs.size() > 0)
+		if(Rule.m_Location == CRule::WALLS && !m_vvLeftWallIds.empty())
 		{
-			PlaceDoodads(pLayer, pRule, &m_LeftWallIDs, Amount, 1);
+			PlaceDoodads(pLayer, &Rule, &m_vvLeftWallIds, Amount, 1);
 		}
 	}
 

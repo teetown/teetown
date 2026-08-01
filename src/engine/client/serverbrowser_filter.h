@@ -3,10 +3,10 @@
 #ifndef ENGINE_CLIENT_SERVERBROWSER_FILTER_H
 #define ENGINE_CLIENT_SERVERBROWSER_FILTER_H
 
-#include <base/tl/array.h>
-
 #include <engine/serverbrowser.h>
 #include <engine/shared/config.h>
+
+#include <vector>
 
 class CServerBrowserFilter
 {
@@ -64,16 +64,16 @@ public:
 	void SetFilter(int Index, const class CServerFilterInfo *pFilterInfo);
 
 	// stats
-	const void *GetID(int FilterIndex, int Index) const { return &m_lFilters[FilterIndex].m_pSortedServerlist[Index]; }
-	int GetIndex(int FilterIndex, int Index) const { return m_lFilters[FilterIndex].m_pSortedServerlist[Index]; }
-	int GetNumSortedServers(int FilterIndex) const { return m_lFilters[FilterIndex].m_NumSortedServers; }
-	int GetNumSortedPlayers(int FilterIndex) const { return m_lFilters[FilterIndex].m_NumSortedPlayers; }
+	const void *GetID(int FilterIndex, int Index) const { return &m_vFilters[FilterIndex].m_pSortedServerlist[Index]; }
+	int GetIndex(int FilterIndex, int Index) const { return m_vFilters[FilterIndex].m_pSortedServerlist[Index]; }
+	int GetNumSortedServers(int FilterIndex) const { return m_vFilters[FilterIndex].m_NumSortedServers; }
+	int GetNumSortedPlayers(int FilterIndex) const { return m_vFilters[FilterIndex].m_NumSortedPlayers; }
 
 private:
 	class CConfig *m_pConfig;
 	class IFriends *m_pFriends;
 	char m_aNetVersion[128];
-	array<CServerFilter> m_lFilters;
+	std::vector<CServerFilter> m_vFilters;
 
 	// get updated on sort
 	class CServerEntry **m_ppServerlist;

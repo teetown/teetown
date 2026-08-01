@@ -22,6 +22,8 @@
 #include <game/client/ui_scrollregion.h>
 #include <game/voting.h>
 
+#include <vector>
+
 // component to fetch keypresses, override all other input
 class CMenusKeyBinder : public CComponent
 {
@@ -145,7 +147,7 @@ private:
 		IGraphics::CTextureHandle m_OrgTexture;
 		IGraphics::CTextureHandle m_GreyTexture;
 	};
-	array<CMenuImage> m_lMenuImages;
+	std::vector<CMenuImage> m_vMenuImages;
 
 	static int MenuImageScan(const char *pName, int IsDir, int DirType, void *pUser);
 
@@ -186,7 +188,7 @@ private:
 		string m_Name;
 		IGraphics::CTextureHandle m_IconTexture;
 	};
-	array<CGameIcon> m_lGameIcons;
+	std::vector<CGameIcon> m_vGameIcons;
 	IGraphics::CTextureHandle m_GameIconDefault;
 	void DoGameIcon(const char *pName, const CUIRect *pRect);
 	static int GameIconScan(const char *pName, int IsDir, int DirType, void *pUser);
@@ -403,7 +405,7 @@ private:
 		void SetFilter(const CServerFilterInfo *pFilterInfo);
 	};
 
-	array<CBrowserFilter> m_lFilters;
+	std::vector<CBrowserFilter> m_vFilters;
 
 	int m_RemoveFilterIndex;
 
@@ -464,9 +466,9 @@ private:
 	CBrowserFilter *GetSelectedBrowserFilter()
 	{
 		const int Tab = ServerBrowser()->GetType();
-		if(m_aSelectedFilters[Tab] < 0 || m_aSelectedFilters[Tab] >= m_lFilters.size())
+		if(m_aSelectedFilters[Tab] < 0 || m_aSelectedFilters[Tab] >= (int)m_vFilters.size())
 			return 0;
-		return &m_lFilters[m_aSelectedFilters[Tab]];
+		return &m_vFilters[m_aSelectedFilters[Tab]];
 	}
 
 	const CServerInfo *GetSelectedServerInfo()

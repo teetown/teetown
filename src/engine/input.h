@@ -75,6 +75,7 @@ public:
 	class IJoystick
 	{
 	public:
+		virtual ~IJoystick() = default;
 		virtual int GetIndex() const = 0;
 		virtual const char *GetName() const = 0;
 		virtual int GetNumAxes() const = 0;
@@ -86,7 +87,7 @@ public:
 		virtual bool Relative(float *pX, float *pY) = 0;
 		virtual bool Absolute(float *pX, float *pY) = 0;
 	};
-	virtual int NumJoysticks() const = 0;
+	virtual size_t NumJoysticks() const = 0;
 	virtual IJoystick *GetActiveJoystick() = 0;
 	virtual void SelectNextJoystick() = 0;
 

@@ -12,6 +12,8 @@
 #include <engine/input.h>
 #include <engine/shared/config.h>
 
+#include <vector>
+
 class CInput : public IEngineInput
 {
 public:
@@ -31,21 +33,21 @@ public:
 		CInput *Input() { return m_pInput; }
 
 	public:
-		CJoystick() { /* empty constructor for sorted_array */ }
 		CJoystick(CInput *pInput, int Index, SDL_Joystick *pDelegate);
+		~CJoystick() override = default;
 
-		int GetIndex() const { return m_Index; }
-		const char *GetName() const { return m_aName; }
+		int GetIndex() const override { return m_Index; }
+		const char *GetName() const override { return m_aName; }
 		const char *GetGUID() const { return m_aGUID; }
 		SDL_JoystickID GetInstanceID() const { return m_InstanceID; }
-		int GetNumAxes() const { return m_NumAxes; }
-		int GetNumButtons() const { return m_NumButtons; }
-		int GetNumBalls() const { return m_NumBalls; }
-		int GetNumHats() const { return m_NumHats; }
-		float GetAxisValue(int Axis);
-		int GetHatValue(int Hat);
-		bool Relative(float *pX, float *pY);
-		bool Absolute(float *pX, float *pY);
+		int GetNumAxes() const override { return m_NumAxes; }
+		int GetNumButtons() const override { return m_NumButtons; }
+		int GetNumBalls() const override { return m_NumBalls; }
+		int GetNumHats() const override { return m_NumHats; }
+		float GetAxisValue(int Axis) override;
+		int GetHatValue(int Hat) override;
+		bool Relative(float *pX, float *pY) override;
+		bool Absolute(float *pX, float *pY) override;
 
 		static int GetJoystickHatKey(int Hat, int HatValue);
 	};
@@ -60,7 +62,7 @@ private:
 	IConsole *Console() { return m_pConsole; }
 
 	// joystick
-	array<CJoystick> m_aJoysticks;
+	std::vector<CJoystick> m_vJoysticks;
 	CJoystick *m_pActiveJoystick;
 	void InitJoysticks();
 	void CloseJoysticks();
@@ -112,7 +114,7 @@ public:
 	bool KeyIsPressed(int Key) const { return KeyState(Key); }
 	bool KeyPress(int Key, bool CheckCounter) const { return CheckCounter ? (m_aInputCount[Key] == m_InputCounter) : m_aInputCount[Key]; }
 
-	int NumJoysticks() const { return m_aJoysticks.size(); }
+	size_t NumJoysticks() const { return m_vJoysticks.size(); }
 	CJoystick *GetActiveJoystick() { return m_pActiveJoystick; }
 	void SelectNextJoystick();
 

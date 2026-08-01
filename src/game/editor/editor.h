@@ -8,7 +8,6 @@
 #include <base/math.h>
 #include <base/system.h>
 #include <base/tl/algorithm.h>
-#include <base/tl/array.h>
 #include <base/tl/sorted_array.h>
 #include <base/tl/string.h>
 #include <base/vmath.h>
@@ -23,6 +22,7 @@
 #include <game/mapitems.h>
 
 #include <algorithm>
+#include <vector>
 
 typedef void (*INDEX_MODIFY_FUNC)(int *pIndex);
 
@@ -50,7 +50,7 @@ class CEnvelope
 {
 public:
 	int m_Channels;
-	array<CEnvPoint> m_lPoints;
+	std::vector<CEnvPoint> m_vPoints;
 	char m_aName[32];
 	float m_Bottom, m_Top;
 	bool m_Synchronized;
@@ -66,7 +66,7 @@ public:
 
 	void Resort()
 	{
-		std::stable_sort(&m_lPoints[0], &m_lPoints[m_lPoints.size()]);
+		std::stable_sort(m_vPoints.begin(), m_vPoints.end());
 		FindTopBottom(0xf);
 	}
 
@@ -74,7 +74,7 @@ public:
 	{
 		m_Top = -1000000000.0f;
 		m_Bottom = 1000000000.0f;
-		for(int i = 0; i < m_lPoints.size(); i++)
+		for(int i = 0; i < (int)m_vPoints.size(); i++)
 		{
 			for(int c = 0; c < m_Channels; c++)
 			{
@@ -82,27 +82,27 @@ public:
 				{
 					{
 						// value handle
-						float v = fx2f(m_lPoints[i].m_aValues[c]);
+						float v = fx2f(m_vPoints[i].m_aValues[c]);
 						if(v > m_Top)
 							m_Top = v;
 						if(v < m_Bottom)
 							m_Bottom = v;
 					}
 
-					if(m_lPoints[i].m_Curvetype == CURVETYPE_BEZIER)
+					if(m_vPoints[i].m_Curvetype == CURVETYPE_BEZIER)
 					{
 						// out-tangent handle
-						float v = fx2f(m_lPoints[i].m_aValues[c] + m_lPoints[i].m_aOutTangentdy[c]);
+						float v = fx2f(m_vPoints[i].m_aValues[c] + m_vPoints[i].m_aOutTangentdy[c]);
 						if(v > m_Top)
 							m_Top = v;
 						if(v < m_Bottom)
 							m_Bottom = v;
 					}
 
-					if((i > 0) && m_lPoints[i - 1].m_Curvetype == CURVETYPE_BEZIER)
+					if((i > 0) && m_vPoints[i - 1].m_Curvetype == CURVETYPE_BEZIER)
 					{
 						// in-tangent handle
-						float v = fx2f(m_lPoints[i].m_aValues[c] + m_lPoints[i].m_aInTangentdy[c]);
+						float v = fx2f(m_vPoints[i].m_aValues[c] + m_vPoints[i].m_aInTangentdy[c]);
 						if(v > m_Top)
 							m_Top = v;
 						if(v < m_Bottom)
@@ -115,7 +115,7 @@ public:
 
 	int Eval(float Time, float *pResult)
 	{
-		CRenderTools::RenderEvalEnvelope(m_lPoints.base_ptr(), m_lPoints.size(), m_Channels, Time, pResult);
+		CRenderTools::RenderEvalEnvelope(m_vPoints.data(), (int)m_vPoints.size(), m_Channels, Time, pResult);
 		return m_Channels;
 	}
 
@@ -135,14 +135,14 @@ public:
 			p.m_aOutTangentdx[c] = 0;
 			p.m_aOutTangentdy[c] = 0;
 		}
-		m_lPoints.add(p);
+		m_vPoints.push_back(p);
 		Resort();
 	}
 
 	float EndTime()
 	{
-		if(m_lPoints.size())
-			return m_lPoints[m_lPoints.size() - 1].m_Time * (1.0f / 1000.0f);
+		if(!m_vPoints.empty())
+			return m_vPoints.back().m_Time * (1.0f / 1000.0f);
 		return 0;
 	}
 };
@@ -208,7 +208,7 @@ class CLayerGroup
 public:
 	class CEditorMap *m_pMap;
 
-	array<CLayer *> m_lLayers;
+	std::vector<CLayer *> m_vLayers;
 
 	int m_OffsetX;
 	int m_OffsetY;
@@ -243,26 +243,28 @@ public:
 
 	bool IsEmpty() const
 	{
-		return m_lLayers.size() == 0;
+		return m_vLayers.empty();
 	}
 
 	void Clear()
 	{
-		m_lLayers.delete_all();
+		for(CLayer *pLayer : m_vLayers)
+			delete pLayer;
+		m_vLayers.clear();
 	}
 
 	void AddLayer(CLayer *l);
 
 	void ModifyImageIndex(INDEX_MODIFY_FUNC Func)
 	{
-		for(int i = 0; i < m_lLayers.size(); i++)
-			m_lLayers[i]->ModifyImageIndex(Func);
+		for(auto &pLayer : m_vLayers)
+			pLayer->ModifyImageIndex(Func);
 	}
 
 	void ModifyEnvelopeIndex(INDEX_MODIFY_FUNC Func)
 	{
-		for(int i = 0; i < m_lLayers.size(); i++)
-			m_lLayers[i]->ModifyEnvelopeIndex(Func);
+		for(auto &pLayer : m_vLayers)
+			pLayer->ModifyEnvelopeIndex(Func);
 	}
 };
 
@@ -310,9 +312,9 @@ public:
 		Clean();
 	}
 
-	array<CLayerGroup *> m_lGroups;
-	array<CEditorImage *> m_lImages;
-	array<CEnvelope *> m_lEnvelopes;
+	std::vector<CLayerGroup *> m_vGroups;
+	std::vector<CEditorImage *> m_vImages;
+	std::vector<CEnvelope *> m_vEnvelopes;
 
 	class CMapInfo
 	{
@@ -340,7 +342,7 @@ public:
 	{
 		m_Modified = true;
 		CEnvelope *e = new CEnvelope(Channels);
-		m_lEnvelopes.add(e);
+		m_vEnvelopes.push_back(e);
 		return e;
 	}
 
@@ -351,44 +353,44 @@ public:
 		m_Modified = true;
 		CLayerGroup *g = new CLayerGroup;
 		g->m_pMap = this;
-		m_lGroups.add(g);
+		m_vGroups.push_back(g);
 		return g;
 	}
 
 	int SwapGroups(int Index0, int Index1)
 	{
-		if(Index0 < 0 || Index0 >= m_lGroups.size())
+		if(Index0 < 0 || Index0 >= (int)m_vGroups.size())
 			return Index0;
-		if(Index1 < 0 || Index1 >= m_lGroups.size())
+		if(Index1 < 0 || Index1 >= (int)m_vGroups.size())
 			return Index0;
 		if(Index0 == Index1)
 			return Index0;
 		m_Modified = true;
-		std::swap(m_lGroups[Index0], m_lGroups[Index1]);
+		std::swap(m_vGroups[Index0], m_vGroups[Index1]);
 		return Index1;
 	}
 
 	void DeleteGroup(int Index)
 	{
-		if(Index < 0 || Index >= m_lGroups.size())
+		if(Index < 0 || Index >= (int)m_vGroups.size())
 			return;
 		m_Modified = true;
-		delete m_lGroups[Index];
-		m_lGroups.remove_index(Index);
+		delete m_vGroups[Index];
+		m_vGroups.erase(m_vGroups.begin() + Index);
 	}
 
 	void ModifyImageIndex(INDEX_MODIFY_FUNC pfnFunc)
 	{
 		m_Modified = true;
-		for(int i = 0; i < m_lGroups.size(); i++)
-			m_lGroups[i]->ModifyImageIndex(pfnFunc);
+		for(auto &pGroup : m_vGroups)
+			pGroup->ModifyImageIndex(pfnFunc);
 	}
 
 	void ModifyEnvelopeIndex(INDEX_MODIFY_FUNC pfnFunc)
 	{
 		m_Modified = true;
-		for(int i = 0; i < m_lGroups.size(); i++)
-			m_lGroups[i]->ModifyEnvelopeIndex(pfnFunc);
+		for(auto &pGroup : m_vGroups)
+			pGroup->ModifyEnvelopeIndex(pfnFunc);
 	}
 
 	void Clean();
@@ -501,7 +503,7 @@ public:
 	void GetSize(float *w, float *h) const;
 
 	int m_Image;
-	array<CQuad> m_lQuads;
+	std::vector<CQuad> m_vQuads;
 };
 
 class CLayerGame : public CLayerTiles
@@ -831,7 +833,7 @@ public:
 	void PopupSelectConfigAutoMapInvoke(float x, float y);
 	bool PopupAutoMapProceedOrder();
 
-	void DoQuadEnvelopes(const array<CQuad> &m_lQuads, IGraphics::CTextureHandle Texture);
+	void DoQuadEnvelopes(const std::vector<CQuad> &vQuads, IGraphics::CTextureHandle Texture);
 	void DoQuadEnvPoint(const CQuad *pQuad, int QIndex, int pIndex);
 	void DoQuadPoint(CQuad *pQuad, int QuadIndex, int v);
 

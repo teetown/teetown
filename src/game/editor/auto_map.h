@@ -3,10 +3,11 @@
 #ifndef GAME_EDITOR_AUTO_MAP_H
 #define GAME_EDITOR_AUTO_MAP_H
 
-#include <base/tl/array.h>
 #include <base/vmath.h>
 
 #include <engine/shared/jsonparser.h>
+
+#include <vector>
 
 typedef struct
 {
@@ -80,7 +81,7 @@ class CTilesetMapper : public IAutoMapper
 		int m_Random;
 		int m_Rotation;
 
-		array<CRuleCondition> m_aConditions;
+		std::vector<CRuleCondition> m_vConditions;
 	};
 
 	struct CRuleSet
@@ -88,19 +89,19 @@ class CTilesetMapper : public IAutoMapper
 		char m_aName[128];
 		int m_BaseTile;
 
-		array<CRule> m_aRules;
+		std::vector<CRule> m_vRules;
 	};
 
-	array<CRuleSet> m_aRuleSets;
+	std::vector<CRuleSet> m_vRuleSets;
 
 public:
 	CTilesetMapper(class CEditor *pEditor) :
-		IAutoMapper(pEditor, TYPE_TILESET) { m_aRuleSets.clear(); }
+		IAutoMapper(pEditor, TYPE_TILESET) { m_vRuleSets.clear(); }
 
 	virtual void Load(const json_value &rElement);
 	virtual void Proceed(class CLayerTiles *pLayer, int ConfigID, RECTi Area);
 
-	virtual int RuleSetNum() { return m_aRuleSets.size(); }
+	virtual int RuleSetNum() { return (int)m_vRuleSets.size(); }
 	virtual const char *GetRuleSetName(int Index) const;
 };
 
@@ -147,28 +148,28 @@ public:
 	{
 		char m_aName[128];
 
-		array<CRule> m_aRules;
+		std::vector<CRule> m_vRules;
 	};
 
 	CDoodadsMapper(class CEditor *pEditor) :
-		IAutoMapper(pEditor, TYPE_DOODADS) { m_aRuleSets.clear(); }
+		IAutoMapper(pEditor, TYPE_DOODADS) { m_vRuleSets.clear(); }
 
 	virtual void Load(const json_value &rElement);
 	virtual void Proceed(class CLayerTiles *pLayer, int ConfigID, int Amount);
 	void AnalyzeGameLayer();
 
-	virtual int RuleSetNum() { return m_aRuleSets.size(); }
+	virtual int RuleSetNum() { return (int)m_vRuleSets.size(); }
 	virtual const char *GetRuleSetName(int Index) const;
 
 private:
-	void PlaceDoodads(CLayerTiles *pLayer, CRule *pRule, array<array<int>> *pPositions, int Amount, int LeftWall = 0);
+	void PlaceDoodads(CLayerTiles *pLayer, CRule *pRule, std::vector<std::vector<int>> *vvpPositions, int Amount, int LeftWall = 0);
 
-	array<CRuleSet> m_aRuleSets;
+	std::vector<CRuleSet> m_vRuleSets;
 
-	array<array<int>> m_FloorIDs;
-	array<array<int>> m_CeilingIDs;
-	array<array<int>> m_RightWallIDs;
-	array<array<int>> m_LeftWallIDs;
+	std::vector<std::vector<int>> m_vvFloorIds;
+	std::vector<std::vector<int>> m_vvCeilingIds;
+	std::vector<std::vector<int>> m_vvRightWallIds;
+	std::vector<std::vector<int>> m_vvLeftWallIds;
 };
 
 #endif

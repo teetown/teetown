@@ -8,6 +8,8 @@
 
 #include <engine/textrender.h>
 
+#include <vector>
+
 // ft2 texture
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -71,7 +73,7 @@ class CGlyphMap
 	class CAtlas
 	{
 	public:
-		array<ivec3> m_Sections;
+		std::vector<ivec3> m_vSections;
 
 		int m_ID;
 		int m_Width;

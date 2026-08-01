@@ -3,13 +3,14 @@
 #ifndef GAME_CLIENT_COMPONENTS_CHAT_H
 #define GAME_CLIENT_COMPONENTS_CHAT_H
 #include <base/system.h>
-#include <base/tl/array.h>
 
 #include <engine/shared/ringbuffer.h>
 
 #include <game/client/component.h>
 #include <game/client/lineinput.h>
 #include <game/commands.h>
+
+#include <vector>
 
 class CChat : public CComponent
 {
@@ -86,7 +87,7 @@ class CChat : public CComponent
 	int m_SelectedCommand;
 	int m_CommandStart;
 
-	array<bool> m_aFilter;
+	std::vector<bool> m_vFilter;
 	int m_FilteredCount;
 	int FilterChatCommands(const char *pLine);
 	int GetFirstActiveCommand();

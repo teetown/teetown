@@ -114,7 +114,7 @@ void CInput::InitJoysticks()
 				continue;
 			}
 			CJoystick Joystick(this, ActualIndex, pJoystick);
-			m_aJoysticks.add(Joystick);
+			m_vJoysticks.push_back(Joystick);
 			dbg_msg("joystick", "Opened Joystick %d '%s' (%d axes, %d buttons, %d balls, %d hats)", i, Joystick.GetName(),
 				Joystick.GetNumAxes(), Joystick.GetNumButtons(), Joystick.GetNumBalls(), Joystick.GetNumHats());
 			ActualIndex++;
@@ -133,12 +133,11 @@ void CInput::InitJoysticks()
 
 void CInput::UpdateActiveJoystick()
 {
-	if(m_aJoysticks.size() == 0)
+	m_pActiveJoystick = nullptr;
+	if(m_vJoysticks.empty())
 		return;
-	m_pActiveJoystick = 0x0;
-	for(array<CJoystick>::range r = m_aJoysticks.all(); !r.empty(); r.pop_front())
+	for(CJoystick &Joystick : m_vJoysticks)
 	{
-		CJoystick &Joystick = r.front();
 		if(str_comp(Joystick.GetGUID(), Config()->m_JoystickGUID) == 0)
 		{
 			m_pActiveJoystick = &Joystick;
@@ -147,7 +146,7 @@ void CInput::UpdateActiveJoystick()
 	}
 	// Fall back to first joystick if no match was found
 	if(!m_pActiveJoystick)
-		m_pActiveJoystick = &m_aJoysticks[0];
+		m_pActiveJoystick = &m_vJoysticks.front();
 }
 
 void CInput::ConchainJoystickGuidChanged(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
@@ -180,16 +179,16 @@ void CInput::CloseJoysticks()
 	if(SDL_WasInit(SDL_INIT_JOYSTICK))
 		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
 
-	m_aJoysticks.clear();
-	m_pActiveJoystick = 0x0;
+	m_vJoysticks.clear();
+	m_pActiveJoystick = nullptr;
 }
 
 void CInput::SelectNextJoystick()
 {
-	const int Num = m_aJoysticks.size();
+	const int Num = m_vJoysticks.size();
 	if(Num > 1)
 	{
-		m_pActiveJoystick = &m_aJoysticks[(m_pActiveJoystick->GetIndex() + 1) % Num];
+		m_pActiveJoystick = &m_vJoysticks[(m_pActiveJoystick->GetIndex() + 1) % Num];
 		str_copy(Config()->m_JoystickGUID, m_pActiveJoystick->GetGUID(), sizeof(Config()->m_JoystickGUID));
 	}
 }

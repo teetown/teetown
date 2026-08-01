@@ -6,8 +6,6 @@
 #include "mapimages.h"
 #include "menus.h"
 
-#include <base/tl/array.h>
-
 #include <engine/demo.h>
 #include <engine/graphics.h>
 #include <engine/keys.h>
@@ -87,7 +85,7 @@ void CMapLayers::LoadBackgroundMap()
 
 	m_pMenuLayers->Init(Kernel(), m_pMenuMap);
 	m_pClient->m_pMapimages->OnMenuMapLoad(m_pMenuMap);
-	LoadEnvPoints(m_pMenuLayers, m_lEnvPointsMenu);
+	LoadEnvPoints(m_pMenuLayers, m_vEnvPointsMenu);
 }
 
 int CMapLayers::GetInitAmount() const
@@ -118,7 +116,7 @@ void CMapLayers::OnMapLoad()
 {
 	if(Layers())
 	{
-		LoadEnvPoints(Layers(), m_lEnvPoints);
+		LoadEnvPoints(Layers(), m_vEnvPoints);
 
 		// easter time, place eggs
 		if(m_pClient->IsEaster())
@@ -135,12 +133,12 @@ void CMapLayers::OnShutdown()
 	}
 }
 
-void CMapLayers::LoadEnvPoints(const CLayers *pLayers, array<CEnvPoint> &lEnvPoints)
+void CMapLayers::LoadEnvPoints(const CLayers *pLayers, std::vector<CEnvPoint> &vEnvPoints)
 {
-	lEnvPoints.clear();
+	vEnvPoints.clear();
 
 	// get envelope points
-	CEnvPoint *pPoints = 0x0;
+	CEnvPoint *pPoints = nullptr;
 	{
 		int Start, Num;
 		pLayers->Map()->GetType(MAPITEMTYPE_ENVPOINTS, &Start, &Num);
@@ -164,7 +162,7 @@ void CMapLayers::LoadEnvPoints(const CLayers *pLayers, array<CEnvPoint> &lEnvPoi
 		if(pItem->m_Version >= 3)
 		{
 			for(int i = 0; i < pItem->m_NumPoints; i++)
-				lEnvPoints.add(pPoints[i + pItem->m_StartPoint]);
+				vEnvPoints.push_back(pPoints[i + pItem->m_StartPoint]);
 		}
 		else
 		{
@@ -187,7 +185,7 @@ void CMapLayers::LoadEnvPoints(const CLayers *pLayers, array<CEnvPoint> &lEnvPoi
 					p.m_aOutTangentdy[c] = 0;
 				}
 
-				lEnvPoints.add(p);
+				vEnvPoints.push_back(p);
 			}
 		}
 	}
@@ -206,12 +204,12 @@ void CMapLayers::EnvelopeEval(float TimeOffset, int Env, float *pChannels, void 
 	if(pThis->Client()->State() == IClient::STATE_ONLINE || pThis->Client()->State() == IClient::STATE_DEMOPLAYBACK)
 	{
 		pLayers = pThis->Layers();
-		pPoints = pThis->m_lEnvPoints.base_ptr();
+		pPoints = pThis->m_vEnvPoints.data();
 	}
 	else
 	{
 		pLayers = pThis->m_pMenuLayers;
-		pPoints = pThis->m_lEnvPointsMenu.base_ptr();
+		pPoints = pThis->m_vEnvPointsMenu.data();
 	}
 
 	int Start, Num;

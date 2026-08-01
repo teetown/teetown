@@ -67,7 +67,7 @@ void CLayerTiles::PrepareForSave()
 	{
 		for(int y = 0; y < m_Height; y++)
 			for(int x = 0; x < m_Width; x++)
-				m_pTiles[y * m_Width + x].m_Flags |= m_pEditor->m_Map.m_lImages[m_Image]->m_aTileFlags[m_pTiles[y * m_Width + x].m_Index];
+				m_pTiles[y * m_Width + x].m_Flags |= m_pEditor->m_Map.m_vImages[m_Image]->m_aTileFlags[m_pTiles[y * m_Width + x].m_Index];
 	}
 
 	int NumSaveTiles = 0; // number of unique tiles that we have to save
@@ -156,8 +156,8 @@ void CLayerTiles::MakePalette()
 
 void CLayerTiles::Render()
 {
-	if(m_Image >= 0 && m_Image < m_pEditor->m_Map.m_lImages.size())
-		m_Texture = m_pEditor->m_Map.m_lImages[m_Image]->m_Texture;
+	if(m_Image >= 0 && m_Image < (int)m_pEditor->m_Map.m_vImages.size())
+		m_Texture = m_pEditor->m_Map.m_vImages[m_Image]->m_Texture;
 	Graphics()->TextureSet(m_Texture);
 	vec4 Color = vec4(m_Color.r / 255.0f, m_Color.g / 255.0f, m_Color.b / 255.0f, m_Color.a / 255.0f);
 	Graphics()->BlendNone();
@@ -297,7 +297,7 @@ void CLayerTiles::FillSelection(bool Empty, CLayer *pBrush, CUIRect Rect)
 	if(m_LiveAutoMap)
 	{
 		RECTi r = {sx - 1, sy - 1, w + 2, h + 2};
-		m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, r);
+		m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, r);
 	}
 
 	m_pEditor->m_Map.m_Modified = true;
@@ -330,7 +330,7 @@ void CLayerTiles::BrushDraw(CLayer *pBrush, float wx, float wy)
 	if(m_LiveAutoMap)
 	{
 		RECTi r = {sx - 1, sy - 1, l->m_Width + 2, l->m_Height + 2};
-		m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, r);
+		m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, r);
 	}
 
 	m_pEditor->m_Map.m_Modified = true;
@@ -518,10 +518,10 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 	CUIRect Button;
 
 	bool IsGameLayer = m_pEditor->m_Map.m_pGameLayer == this;
-	bool InGameGroup = !find_linear(m_pEditor->m_Map.m_pGameGroup->m_lLayers.all(), this).empty();
+	bool InGameGroup = std::find(m_pEditor->m_Map.m_pGameGroup->m_vLayers.begin(), m_pEditor->m_Map.m_pGameGroup->m_vLayers.end(), this) != m_pEditor->m_Map.m_pGameGroup->m_vLayers.end();
 	if(!IsGameLayer)
 	{
-		if(m_Image >= 0 && m_Image < m_pEditor->m_Map.m_lImages.size() && m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper)
+		if(m_Image >= 0 && m_Image < (int)m_pEditor->m_Map.m_vImages.size() && m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper)
 		{
 			static int s_AutoMapperButton = 0;
 			pToolBox->HSplitBottom(12.0f, pToolBox, &Button);
@@ -531,14 +531,14 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 			bool Proceed = m_pEditor->PopupAutoMapProceedOrder();
 			if(Proceed)
 			{
-				if(m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper->GetType() == IAutoMapper::TYPE_TILESET)
+				if(m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper->GetType() == IAutoMapper::TYPE_TILESET)
 				{
 					RECTi r = {0, 0, m_Width, m_Height};
-					m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, r);
+					m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, r);
 					return 1; // only close the popup when it's a tileset
 				}
-				else if(m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper->GetType() == IAutoMapper::TYPE_DOODADS)
-					m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, m_SelectedAmount);
+				else if(m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper->GetType() == IAutoMapper::TYPE_DOODADS)
+					m_pEditor->m_Map.m_vImages[m_Image]->m_pAutoMapper->Proceed(this, m_SelectedRuleSet, m_SelectedAmount);
 			}
 		}
 	}
@@ -592,7 +592,7 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 		{"Shift", 0, PROPTYPE_SHIFT, 0, 0},
 		{"Image", m_Image, PROPTYPE_IMAGE, 0, 0},
 		{"Color", Color, PROPTYPE_COLOR, 0, 0},
-		{"Color Env", m_ColorEnv + 1, PROPTYPE_INT_STEP, 0, m_pEditor->m_Map.m_lEnvelopes.size() + 1},
+		{"Color Env", m_ColorEnv + 1, PROPTYPE_INT_STEP, 0, (int)m_pEditor->m_Map.m_vEnvelopes.size() + 1},
 		{"Color TO", m_ColorEnvOffset, PROPTYPE_INT_SCROLL, -1000000, 1000000},
 		{0},
 	};
@@ -624,12 +624,12 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 		}
 		else
 		{
-			bool HasNameOfOldImage = m_Image != -1 && str_comp(m_aName, m_pEditor->m_Map.m_lImages[m_Image]->m_aName) == 0;
-			m_Image = NewVal % m_pEditor->m_Map.m_lImages.size();
+			bool HasNameOfOldImage = m_Image != -1 && str_comp(m_aName, m_pEditor->m_Map.m_vImages[m_Image]->m_aName) == 0;
+			m_Image = NewVal % (int)m_pEditor->m_Map.m_vImages.size();
 			m_SelectedRuleSet = 0;
 			m_LiveAutoMap = false;
 			if(str_comp(m_aName, pDefaultLayerName) == 0 || HasNameOfOldImage)
-				str_copy(m_aName, m_pEditor->m_Map.m_lImages[m_Image]->m_aName, sizeof(m_aName));
+				str_copy(m_aName, m_pEditor->m_Map.m_vImages[m_Image]->m_aName, sizeof(m_aName));
 		}
 	}
 	else if(Prop == PROP_COLOR)
@@ -641,12 +641,12 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 	}
 	if(Prop == PROP_COLOR_ENV)
 	{
-		int Index = clamp(NewVal - 1, -1, m_pEditor->m_Map.m_lEnvelopes.size() - 1);
+		int Index = clamp(NewVal - 1, -1, (int)m_pEditor->m_Map.m_vEnvelopes.size() - 1);
 		int Step = (Index - m_ColorEnv) % 2;
 		if(Step != 0)
 		{
-			for(; Index >= -1 && Index < m_pEditor->m_Map.m_lEnvelopes.size(); Index += Step)
-				if(Index == -1 || m_pEditor->m_Map.m_lEnvelopes[Index]->m_Channels == 4)
+			for(; Index >= -1 && Index < (int)m_pEditor->m_Map.m_vEnvelopes.size(); Index += Step)
+				if(Index == -1 || m_pEditor->m_Map.m_vEnvelopes[Index]->m_Channels == 4)
 				{
 					m_ColorEnv = Index;
 					break;

@@ -4,12 +4,13 @@
 #define ENGINE_TEXTRENDER_H
 #include "kernel.h"
 
-#include <base/tl/array.h>
 #include <base/vmath.h>
 
 #include <engine/console.h>
 #include <engine/graphics.h>
 #include <engine/storage.h>
+
+#include <vector>
 
 // TextRender Features
 enum
@@ -90,7 +91,7 @@ class CTextCursor
 	vec2 m_Advance;
 	bool m_SkipTextRender;
 	float m_NextLineAdvanceY;
-	array<CScaledGlyph> m_Glyphs;
+	std::vector<CScaledGlyph> m_vGlyphs;
 	int64_t m_StringVersion;
 
 	CTextBoundingBox AlignedBoundingBox() const
@@ -148,7 +149,8 @@ public:
 			m_PageCountWhenDrawn = -1;
 			m_Truncated = false;
 			m_StartOfLine = true;
-			m_Glyphs.set_size(0);
+			m_vGlyphs.clear();
+			m_vGlyphs.shrink_to_fit();
 			m_StringVersion = StringVersion;
 			m_SkipTextRender = false;
 		}
@@ -167,7 +169,7 @@ public:
 	vec2 AdvancePosition() const { return m_CursorPos + m_Advance; }
 	bool IsTruncated() const { return m_Truncated; }
 	int LineCount() const { return m_LineCount; }
-	int GlyphCount() const { return m_Glyphs.size(); }
+	int GlyphCount() const { return m_vGlyphs.size(); }
 	int CharCount() const { return m_CharCount; }
 
 	// Default Cursor: Top left single line no width limit
@@ -196,7 +198,7 @@ public:
 		return Box;
 	}
 
-	bool Rendered() const { return m_Glyphs.size() > 0; }
+	bool Rendered() const { return m_vGlyphs.size() > 0; }
 };
 
 class ITextRender : public IInterface

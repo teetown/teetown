@@ -869,7 +869,7 @@ int CMenus::MenuImageScan(const char *pName, int IsDir, int DirType, void *pUser
 	str_truncate(MenuImage.m_aName, sizeof(MenuImage.m_aName), pName, str_length(pName) - 4);
 	str_format(aBuf, sizeof(aBuf), "load menu image %s", MenuImage.m_aName);
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "game", aBuf);
-	pSelf->m_lMenuImages.add(MenuImage);
+	pSelf->m_vMenuImages.push_back(MenuImage);
 	pSelf->RenderLoading(5);
 
 	return 0;
@@ -877,12 +877,13 @@ int CMenus::MenuImageScan(const char *pName, int IsDir, int DirType, void *pUser
 
 const CMenus::CMenuImage *CMenus::FindMenuImage(const char *pName)
 {
-	for(int i = 0; i < m_lMenuImages.size(); i++)
+	for(const auto &Image : m_vMenuImages)
 	{
-		if(str_comp(m_lMenuImages[i].m_aName, pName) == 0)
-			return &m_lMenuImages[i];
+		if(str_comp(Image.m_aName, pName) == 0)
+			return &Image;
 	}
-	return 0;
+
+	return nullptr;
 }
 
 void CMenus::UpdatedFilteredVideoModes()
@@ -933,7 +934,7 @@ void CMenus::OnInit()
 	m_MousePos.y = Graphics()->ScreenHeight() / 2;
 
 	// load menu images
-	m_lMenuImages.clear();
+	m_vMenuImages.clear();
 	Storage()->ListDirectory(IStorage::TYPE_ALL, "ui/menuimages", MenuImageScan, this);
 
 	// load filters

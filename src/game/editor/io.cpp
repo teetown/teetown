@@ -66,9 +66,9 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 	}
 
 	// save images
-	for(int i = 0; i < m_lImages.size(); i++)
+	for(int i = 0; i < (int)m_vImages.size(); i++)
 	{
-		CEditorImage *pImg = m_lImages[i];
+		CEditorImage *pImg = m_vImages[i];
 
 		// analyze the image for when saving (should be done when we load the image)
 		// TODO!
@@ -110,9 +110,9 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 	// save layers
 	int LayerCount = 0, GroupCount = 0;
-	for(int g = 0; g < m_lGroups.size(); g++)
+	for(int g = 0; g < (int)m_vGroups.size(); g++)
 	{
-		CLayerGroup *pGroup = m_lGroups[g];
+		CLayerGroup *pGroup = m_vGroups[g];
 		if(!pGroup->m_SaveToMap)
 			continue;
 
@@ -134,15 +134,15 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 		// save group name
 		StrToInts(GItem.m_aName, sizeof(GItem.m_aName) / sizeof(int), pGroup->m_aName);
 
-		for(int l = 0; l < pGroup->m_lLayers.size(); l++)
+		for(int l = 0; l < (int)pGroup->m_vLayers.size(); l++)
 		{
-			if(!pGroup->m_lLayers[l]->m_SaveToMap)
+			if(!pGroup->m_vLayers[l]->m_SaveToMap)
 				continue;
 
-			if(pGroup->m_lLayers[l]->m_Type == LAYERTYPE_TILES)
+			if(pGroup->m_vLayers[l]->m_Type == LAYERTYPE_TILES)
 			{
 				m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor", "saving tiles layer");
-				CLayerTiles *pLayer = (CLayerTiles *)pGroup->m_lLayers[l];
+				CLayerTiles *pLayer = (CLayerTiles *)pGroup->m_vLayers[l];
 				pLayer->PrepareForSave();
 
 				CMapItemLayerTilemap Item;
@@ -170,11 +170,11 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 				GItem.m_NumLayers++;
 				LayerCount++;
 			}
-			else if(pGroup->m_lLayers[l]->m_Type == LAYERTYPE_QUADS)
+			else if(pGroup->m_vLayers[l]->m_Type == LAYERTYPE_QUADS)
 			{
 				m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor", "saving quads layer");
-				CLayerQuads *pLayer = (CLayerQuads *)pGroup->m_lLayers[l];
-				if(pLayer->m_lQuads.size())
+				CLayerQuads *pLayer = (CLayerQuads *)pGroup->m_vLayers[l];
+				if(!pLayer->m_vQuads.empty())
 				{
 					CMapItemLayerQuads Item;
 					Item.m_Version = CMapItemLayerQuads::CURRENT_VERSION;
@@ -184,8 +184,8 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 					Item.m_Image = pLayer->m_Image;
 
 					// add the data
-					Item.m_NumQuads = pLayer->m_lQuads.size();
-					Item.m_Data = df.AddDataSwapped(pLayer->m_lQuads.size() * sizeof(CQuad), pLayer->m_lQuads.base_ptr());
+					Item.m_NumQuads = (int)pLayer->m_vQuads.size();
+					Item.m_Data = df.AddDataSwapped((int)pLayer->m_vQuads.size() * sizeof(CQuad), pLayer->m_vQuads.data());
 
 					// save layer name
 					StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), pLayer->m_aName);
@@ -204,11 +204,11 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 	// check for bezier curve envelopes, otherwise use older, smaller envelope points
 	int Version = CMapItemEnvelope_v2::CURRENT_VERSION;
 	int Size = sizeof(CEnvPoint_v1);
-	for(int e = 0; e < m_lEnvelopes.size(); e++)
+	for(const CEnvelope *pEnvelope : m_vEnvelopes)
 	{
-		for(int p = 0; p < m_lEnvelopes[e]->m_lPoints.size(); p++)
+		for(const CEnvPoint &Point : pEnvelope->m_vPoints)
 		{
-			if(m_lEnvelopes[e]->m_lPoints[p].m_Curvetype == CURVETYPE_BEZIER)
+			if(Point.m_Curvetype == CURVETYPE_BEZIER)
 			{
 				Version = CMapItemEnvelope::CURRENT_VERSION;
 				Size = sizeof(CEnvPoint);
@@ -219,15 +219,15 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 	// save envelopes
 	int PointCount = 0;
-	for(int e = 0; e < m_lEnvelopes.size(); e++)
+	for(int e = 0; e < (int)m_vEnvelopes.size(); e++)
 	{
 		CMapItemEnvelope Item;
 		Item.m_Version = Version;
-		Item.m_Channels = m_lEnvelopes[e]->m_Channels;
+		Item.m_Channels = m_vEnvelopes[e]->m_Channels;
 		Item.m_StartPoint = PointCount;
-		Item.m_NumPoints = m_lEnvelopes[e]->m_lPoints.size();
-		Item.m_Synchronized = m_lEnvelopes[e]->m_Synchronized;
-		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), m_lEnvelopes[e]->m_aName);
+		Item.m_NumPoints = (int)m_vEnvelopes[e]->m_vPoints.size();
+		Item.m_Synchronized = m_vEnvelopes[e]->m_Synchronized;
+		StrToInts(Item.m_aName, sizeof(Item.m_aName) / sizeof(int), m_vEnvelopes[e]->m_aName);
 
 		df.AddItem(MAPITEMTYPE_ENVELOPE, e, sizeof(Item), &Item);
 		PointCount += Item.m_NumPoints;
@@ -237,11 +237,11 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 	int TotalSize = Size * PointCount;
 	unsigned char *pPoints = (unsigned char *)mem_alloc(TotalSize);
 	int Offset = 0;
-	for(int e = 0; e < m_lEnvelopes.size(); e++)
+	for(const CEnvelope *pEnvelope : m_vEnvelopes)
 	{
-		for(int p = 0; p < m_lEnvelopes[e]->m_lPoints.size(); p++)
+		for(const CEnvPoint &Point : pEnvelope->m_vPoints)
 		{
-			mem_copy(pPoints + Offset, &(m_lEnvelopes[e]->m_lPoints[p]), Size);
+			mem_copy(pPoints + Offset, &Point, Size);
 			Offset += Size;
 		}
 	}
@@ -358,7 +358,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 				// load auto mapper file
 				pImg->LoadAutoMapper();
 
-				m_lImages.add(pImg);
+				m_vImages.push_back(pImg);
 
 				// unload image
 				DataFile.UnloadData(pItem->m_ImageData);
@@ -461,7 +461,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						pQuads->m_pEditor = m_pEditor;
 						pLayer = pQuads;
 						pQuads->m_Image = pQuadsItem->m_Image;
-						if(pQuads->m_Image < -1 || pQuads->m_Image >= m_lImages.size())
+						if(pQuads->m_Image < -1 || pQuads->m_Image >= (int)m_vImages.size())
 							pQuads->m_Image = -1;
 
 						// load layer name
@@ -470,8 +470,8 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 
 						void *pData = DataFile.GetDataSwapped(pQuadsItem->m_Data);
 						pGroup->AddLayer(pQuads);
-						pQuads->m_lQuads.set_size(pQuadsItem->m_NumQuads);
-						mem_copy(pQuads->m_lQuads.base_ptr(), pData, sizeof(CQuad) * pQuadsItem->m_NumQuads);
+						pQuads->m_vQuads.resize(pQuadsItem->m_NumQuads);
+						mem_copy(pQuads->m_vQuads.data(), pData, sizeof(CQuad) * pQuadsItem->m_NumQuads);
 						DataFile.UnloadData(pQuadsItem->m_Data);
 					}
 
@@ -501,32 +501,32 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 				CMapItemEnvelope *pItem = (CMapItemEnvelope *)DataFile.GetItem(Start + e, 0, 0);
 				const int Channels = minimum(pItem->m_Channels, 4);
 				CEnvelope *pEnv = new CEnvelope(Channels);
-				pEnv->m_lPoints.set_size(pItem->m_NumPoints);
+				pEnv->m_vPoints.resize(pItem->m_NumPoints);
 				for(int n = 0; n < pItem->m_NumPoints; n++)
 				{
 					if(pItem->m_Version >= 3)
 					{
-						pEnv->m_lPoints[n] = pEnvPoints[pItem->m_StartPoint + n];
+						pEnv->m_vPoints[n] = pEnvPoints[pItem->m_StartPoint + n];
 					}
 					else
 					{
 						// backwards compatibility
 						CEnvPoint_v1 *pEnvPoint_v1 = &((CEnvPoint_v1 *)pEnvPoints)[pItem->m_StartPoint + n];
-						mem_zero((void *)&pEnv->m_lPoints[n], sizeof(CEnvPoint));
+						mem_zero((void *)&pEnv->m_vPoints[n], sizeof(CEnvPoint));
 
-						pEnv->m_lPoints[n].m_Time = pEnvPoint_v1->m_Time;
-						pEnv->m_lPoints[n].m_Curvetype = pEnvPoint_v1->m_Curvetype;
+						pEnv->m_vPoints[n].m_Time = pEnvPoint_v1->m_Time;
+						pEnv->m_vPoints[n].m_Curvetype = pEnvPoint_v1->m_Curvetype;
 
 						for(int c = 0; c < Channels; c++)
 						{
-							pEnv->m_lPoints[n].m_aValues[c] = pEnvPoint_v1->m_aValues[c];
+							pEnv->m_vPoints[n].m_aValues[c] = pEnvPoint_v1->m_aValues[c];
 						}
 					}
 				}
 
 				if(pItem->m_aName[0] != -1) // compatibility with old maps
 					IntsToStr(pItem->m_aName, sizeof(pItem->m_aName) / sizeof(int), pEnv->m_aName);
-				m_lEnvelopes.add(pEnv);
+				m_vEnvelopes.push_back(pEnv);
 				if(pItem->m_Version >= 2)
 					pEnv->m_Synchronized = pItem->m_Synchronized;
 			}
@@ -556,35 +556,34 @@ int CEditor::Append(const char *pFileName, int StorageType)
 		return Err;
 
 	// modify indices
-	gs_ModifyAddAmount = m_Map.m_lImages.size();
+	gs_ModifyAddAmount = (int)m_Map.m_vImages.size();
 	NewMap.ModifyImageIndex(ModifyAdd);
 
-	gs_ModifyAddAmount = m_Map.m_lEnvelopes.size();
+	gs_ModifyAddAmount = (int)m_Map.m_vEnvelopes.size();
 	NewMap.ModifyEnvelopeIndex(ModifyAdd);
 
 	// transfer images
-	for(int i = 0; i < NewMap.m_lImages.size(); i++)
-		m_Map.m_lImages.add(NewMap.m_lImages[i]);
-	NewMap.m_lImages.clear();
+	for(CEditorImage *pNewImage : NewMap.m_vImages)
+		m_Map.m_vImages.push_back(pNewImage);
+	NewMap.m_vImages.clear();
 
 	// transfer envelopes
-	for(int i = 0; i < NewMap.m_lEnvelopes.size(); i++)
-		m_Map.m_lEnvelopes.add(NewMap.m_lEnvelopes[i]);
-	NewMap.m_lEnvelopes.clear();
+	for(CEnvelope *pEnvelope : NewMap.m_vEnvelopes)
+		m_Map.m_vEnvelopes.push_back(pEnvelope);
+	NewMap.m_vEnvelopes.clear();
 
 	// transfer groups
-
-	for(int i = 0; i < NewMap.m_lGroups.size(); i++)
+	for(CLayerGroup *pGroup : NewMap.m_vGroups)
 	{
-		if(NewMap.m_lGroups[i] == NewMap.m_pGameGroup)
-			delete NewMap.m_lGroups[i];
+		if(pGroup == NewMap.m_pGameGroup)
+			delete pGroup;
 		else
 		{
-			NewMap.m_lGroups[i]->m_pMap = &m_Map;
-			m_Map.m_lGroups.add(NewMap.m_lGroups[i]);
+			pGroup->m_pMap = &m_Map;
+			m_Map.m_vGroups.push_back(pGroup);
 		}
 	}
-	NewMap.m_lGroups.clear();
+	NewMap.m_vGroups.clear();
 
 	// all done \o/
 	return 0;

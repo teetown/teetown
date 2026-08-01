@@ -248,7 +248,7 @@ void CMenus::LoadFilters()
 				FilterInfo.m_Country = rSubStart["filter_country"].u.integer;
 		}
 
-		m_lFilters.add(CBrowserFilter(Type, pName, ServerBrowser()));
+		m_vFilters.emplace_back(Type, pName, ServerBrowser());
 
 		if(Type == CBrowserFilter::FILTER_STANDARD) // make sure the pure filter is enabled in the Teeworlds-filter
 			FilterInfo.m_SortHash |= IServerBrowser::FILTER_PURE;
@@ -258,7 +258,7 @@ void CMenus::LoadFilters()
 			FilterInfo.m_aGametypeExclusive[0] = false;
 		}
 
-		m_lFilters[i].SetFilter(&FilterInfo);
+		m_vFilters[i].SetFilter(&FilterInfo);
 	}
 
 	CBrowserFilter *pSelectedFilter = GetSelectedBrowserFilter();
@@ -297,19 +297,19 @@ void CMenus::SaveFilters()
 	// filter
 	Writer.WriteAttribute("filter");
 	Writer.BeginArray();
-	for(int i = 0; i < m_lFilters.size(); i++)
+	for(const auto &Filter : m_vFilters)
 	{
 		// part start
 		Writer.BeginObject();
-		Writer.WriteAttribute(m_lFilters[i].Name());
+		Writer.WriteAttribute(Filter.Name());
 		Writer.BeginObject();
 		{
 			Writer.WriteAttribute("type");
-			Writer.WriteIntValue(m_lFilters[i].Custom());
+			Writer.WriteIntValue(Filter.Custom());
 
 			// filter setting
 			CServerFilterInfo FilterInfo;
-			m_lFilters[i].GetFilter(&FilterInfo);
+			Filter.GetFilter(&FilterInfo);
 
 			Writer.WriteAttribute("settings");
 			Writer.BeginObject();
@@ -350,84 +350,75 @@ void CMenus::SaveFilters()
 
 void CMenus::RemoveFilter(int FilterIndex)
 {
-	int Filter = m_lFilters[FilterIndex].Filter();
-	ServerBrowser()->RemoveFilter(Filter);
-	m_lFilters.remove_index(FilterIndex);
+	int FilterNum = m_vFilters[FilterIndex].Filter();
+	ServerBrowser()->RemoveFilter(FilterNum);
+	m_vFilters.erase(m_vFilters.begin() + FilterIndex);
 
 	// update filter indexes
-	for(int i = 0; i < m_lFilters.size(); i++)
+	for(auto &Filter : m_vFilters)
 	{
-		CBrowserFilter *pFilter = &m_lFilters[i];
-		if(pFilter->Filter() > Filter)
-			pFilter->SetFilterNum(pFilter->Filter() - 1);
+		if(Filter.Filter() > FilterNum)
+			Filter.SetFilterNum(Filter.Filter() - 1);
 	}
 }
 
 void CMenus::MoveFilter(bool Up, int Filter)
 {
-	// move up
-	CBrowserFilter Temp = m_lFilters[Filter];
 	if(Up)
 	{
 		if(Filter > 0)
-		{
-			m_lFilters[Filter] = m_lFilters[Filter - 1];
-			m_lFilters[Filter - 1] = Temp;
-		}
+			std::swap(m_vFilters[Filter], m_vFilters[Filter - 1]);
 	}
-	else // move down
+	else
 	{
-		if(Filter < m_lFilters.size() - 1)
-		{
-			m_lFilters[Filter] = m_lFilters[Filter + 1];
-			m_lFilters[Filter + 1] = Temp;
-		}
+		if(Filter < ((int)m_vFilters.size() - 1))
+			std::swap(m_vFilters[Filter], m_vFilters[Filter + 1]);
 	}
 }
 
 void CMenus::InitDefaultFilters()
 {
 	int Filters = 0;
-	for(int i = 0; i < m_lFilters.size(); i++)
-		Filters |= 1 << m_lFilters[i].Custom();
+	for(const auto &Filter : m_vFilters)
+		Filters |= 1 << Filter.Custom();
 
 	const bool UseDefaultFilters = Filters == 0;
 
 	if((Filters & (1 << CBrowserFilter::FILTER_STANDARD)) == 0)
 	{
-		m_lFilters.add(CBrowserFilter(CBrowserFilter::FILTER_STANDARD, "Teeworlds", ServerBrowser()));
-		for(int Pos = m_lFilters.size() - 1; Pos > 0; --Pos)
+		m_vFilters.emplace_back(CBrowserFilter::FILTER_STANDARD, "Teeworlds", ServerBrowser());
+		for(int Pos = (int)m_vFilters.size() - 1; Pos > 0; --Pos)
 			MoveFilter(true, Pos);
 	}
 
 	if((Filters & (1 << CBrowserFilter::FILTER_RACE)) == 0)
 	{
-		m_lFilters.add(CBrowserFilter(CBrowserFilter::FILTER_RACE, Localize("Race"), ServerBrowser()));
-		for(int Pos = m_lFilters.size() - 1; Pos > 1; --Pos)
+		m_vFilters.emplace_back(CBrowserFilter::FILTER_RACE, Localize("Race"), ServerBrowser());
+		for(int Pos = m_vFilters.size() - 1; Pos > 1; --Pos)
 			MoveFilter(true, Pos);
 	}
 
 	if((Filters & (1 << CBrowserFilter::FILTER_FAVORITES)) == 0)
 	{
-		m_lFilters.add(CBrowserFilter(CBrowserFilter::FILTER_FAVORITES, Localize("Favorites"), ServerBrowser()));
-		for(int Pos = m_lFilters.size() - 1; Pos > 2; --Pos)
+		m_vFilters.emplace_back(CBrowserFilter::FILTER_FAVORITES, Localize("Favorites"), ServerBrowser());
+		for(int Pos = m_vFilters.size() - 1; Pos > 2; --Pos)
 			MoveFilter(true, Pos);
 	}
 
 	if((Filters & (1 << CBrowserFilter::FILTER_ALL)) == 0)
 	{
-		m_lFilters.add(CBrowserFilter(CBrowserFilter::FILTER_ALL, Localize("All"), ServerBrowser()));
-		for(int Pos = m_lFilters.size() - 1; Pos > 3; --Pos)
+		m_vFilters.emplace_back(CBrowserFilter::FILTER_ALL, Localize("All"), ServerBrowser());
+		for(int Pos = m_vFilters.size() - 1; Pos > 3; --Pos)
 			MoveFilter(true, Pos);
 	}
 
 	// expand the all filter tab by default
 	if(UseDefaultFilters)
 	{
-		const int AllFilterIndex = m_lFilters.size() - 1;
+		const int AllFilterIndex = m_vFilters.size() - 1;
 		for(unsigned i = 0; i < IServerBrowser::NUM_TYPES; ++i)
 			m_aSelectedFilters[i] = AllFilterIndex; // default to "all" if not set
-		m_lFilters[AllFilterIndex].Switch();
+		m_vFilters[AllFilterIndex].Switch();
 	}
 }
 
@@ -666,7 +657,7 @@ int CMenus::DoBrowserEntry(const void *pID, CUIRect View, const CServerInfo *pEn
 
 void CMenus::RenderFilterHeader(CUIRect View, int FilterIndex)
 {
-	CBrowserFilter *pFilter = &m_lFilters[FilterIndex];
+	CBrowserFilter *pFilter = &m_vFilters[FilterIndex];
 
 	float ButtonHeight = 20.0f;
 	float Spacing = 3.0f;
@@ -727,7 +718,7 @@ void CMenus::RenderFilterHeader(CUIRect View, int FilterIndex)
 	EditButtons.VSplitRight(Spacing, &EditButtons, 0);
 	EditButtons.VSplitRight(ButtonHeight, &EditButtons, &Button);
 	Button.Margin(2.0f, &Button);
-	if(FilterIndex < m_lFilters.size() - 1)
+	if(FilterIndex < (int)m_vFilters.size() - 1)
 	{
 		if(DoButton_SpriteID(&pFilter->m_DownButtonContainer, IMAGE_TOOLICONS, SPRITE_TOOL_DOWN_A, false, &Button))
 		{
@@ -744,10 +735,10 @@ void CMenus::RenderFilterHeader(CUIRect View, int FilterIndex)
 		// retract the other filters
 		if(pFilter->Extended())
 		{
-			for(int i = 0; i < m_lFilters.size(); ++i)
+			for(int i = 0; i < (int)m_vFilters.size(); ++i)
 			{
-				if(i != FilterIndex && m_lFilters[i].Extended())
-					m_lFilters[i].Switch();
+				if(i != FilterIndex && m_vFilters[i].Extended())
+					m_vFilters[i].Switch();
 			}
 		}
 	}
@@ -903,21 +894,21 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 	// count all the servers and update selected filter based on UI state
 	int NumServers = 0;
 	int SelectedFilter = -1;
-	for(int i = 0; i < m_lFilters.size(); i++)
+	for(int i = 0; i < (int)m_vFilters.size(); i++)
 	{
 		// restore selected filter from browser page
-		if(ToBeSelectedFilter != -2 && (ToBeSelectedFilter == i) != m_lFilters[i].Extended())
+		if(ToBeSelectedFilter != -2 && (ToBeSelectedFilter == i) != m_vFilters[i].Extended())
 		{
-			m_lFilters[i].Switch();
+			m_vFilters[i].Switch();
 		}
 
-		if(m_lFilters[i].Extended())
+		if(m_vFilters[i].Extended())
 		{
 			if(SelectedFilter == -1)
 			{
 				SelectedFilter = i;
 			}
-			NumServers += m_lFilters[i].NumSortedServers();
+			NumServers += m_vFilters[i].NumSortedServers();
 		}
 	}
 
@@ -949,10 +940,10 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			if(!CtrlPressed)
 			{
 				ToBeSelectedServer = m_aSelectedServers[BrowserType] < 0 ? 0 : (m_aSelectedServers[BrowserType] + 1);
-				if(ToBeSelectedServer >= m_lFilters[SelectedFilter].NumSortedServers())
-					ToBeSelectedServer = m_lFilters[SelectedFilter].NumSortedServers() - 1;
+				if(ToBeSelectedServer >= m_vFilters[SelectedFilter].NumSortedServers())
+					ToBeSelectedServer = m_vFilters[SelectedFilter].NumSortedServers() - 1;
 			}
-			else if(SelectedFilter + 1 < m_lFilters.size())
+			else if(SelectedFilter + 1 < (int)m_vFilters.size())
 			{
 				// move to next filter
 				NewFilter = SelectedFilter + 1;
@@ -975,13 +966,13 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 
 		if(NewFilter != SelectedFilter)
 		{
-			m_lFilters[NewFilter].Switch();
-			m_lFilters[SelectedFilter].Switch();
+			m_vFilters[NewFilter].Switch();
+			m_vFilters[SelectedFilter].Switch();
 			m_aSelectedServers[BrowserType] = -1;
 			m_AddressSelection |= ADDR_SELECTION_CHANGE;
 		}
 
-		if(ToBeSelectedServer > -1 && ToBeSelectedServer < m_lFilters[NewFilter].NumSortedServers())
+		if(ToBeSelectedServer > -1 && ToBeSelectedServer < m_vFilters[NewFilter].NumSortedServers())
 		{
 			m_aSelectedFilters[BrowserType] = NewFilter;
 			if(m_aSelectedServers[BrowserType] != ToBeSelectedServer)
@@ -1008,9 +999,9 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 	View.y += ScrollOffset.y;
 
 	const char *pAddress = GetServerBrowserAddress();
-	for(int FilterIndex = 0; FilterIndex < m_lFilters.size(); FilterIndex++)
+	for(int FilterIndex = 0; FilterIndex < (int)m_vFilters.size(); FilterIndex++)
 	{
-		CBrowserFilter *pFilter = &m_lFilters[FilterIndex];
+		CBrowserFilter *pFilter = &m_vFilters[FilterIndex];
 
 		// filter header
 		CUIRect Header;
@@ -1088,7 +1079,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View)
 			}
 		}
 
-		if(FilterIndex < m_lFilters.size() - 1)
+		if(FilterIndex < (int)m_vFilters.size() - 1)
 		{
 			CUIRect Space;
 			View.HSplitTop(SpacingH, &Space, &View);
@@ -1560,8 +1551,8 @@ void CMenus::RenderServerbrowserFilterTab(CUIRect View)
 			CBrowserFilter *pSelectedFilter = GetSelectedBrowserFilter();
 			if(pSelectedFilter)
 				pSelectedFilter->Switch();
-			m_lFilters.add(CBrowserFilter(CBrowserFilter::FILTER_CUSTOM, s_FilterInput.GetString(), ServerBrowser()));
-			m_lFilters[m_lFilters.size() - 1].Switch();
+			m_vFilters.emplace_back(CBrowserFilter::FILTER_CUSTOM, s_FilterInput.GetString(), ServerBrowser());
+			m_vFilters.back().Switch();
 			s_FilterInput.Clear();
 			Client()->ServerBrowserUpdate();
 		}
@@ -2124,11 +2115,11 @@ void CMenus::DoGameIcon(const char *pName, const CUIRect *pRect)
 
 	// get texture
 	IGraphics::CTextureHandle Tex = m_GameIconDefault;
-	for(int i = 0; i < m_lGameIcons.size(); ++i)
+	for(const auto &GameIcon : m_vGameIcons)
 	{
-		if(!str_comp_nocase(aNameBuf, m_lGameIcons[i].m_Name))
+		if(!str_comp_nocase(aNameBuf, GameIcon.m_Name))
 		{
-			Tex = m_lGameIcons[i].m_IconTexture;
+			Tex = GameIcon.m_IconTexture;
 			break;
 		}
 	}
@@ -2168,7 +2159,7 @@ int CMenus::GameIconScan(const char *pName, int IsDir, int DirType, void *pUser)
 
 	GameIcon.m_IconTexture = pSelf->Graphics()->LoadTextureRaw(CGameIcon::GAMEICON_SIZE, CGameIcon::GAMEICON_SIZE, Info.m_Format, Info.m_pData, Info.m_Format, IGraphics::TEXLOAD_LINEARMIPMAPS);
 	mem_free(Info.m_pData);
-	pSelf->m_lGameIcons.add(GameIcon);
+	pSelf->m_vGameIcons.push_back(GameIcon);
 	if(!str_comp_nocase(aGameIconName, "mod"))
 		pSelf->m_GameIconDefault = GameIcon.m_IconTexture;
 	return 0;

@@ -2,9 +2,10 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef GAME_CLIENT_COMPONENTS_MAPLAYERS_H
 #define GAME_CLIENT_COMPONENTS_MAPLAYERS_H
-#include <base/tl/array.h>
 
 #include <game/client/component.h>
+
+#include <vector>
 
 class CMapLayers : public CComponent
 {
@@ -14,8 +15,8 @@ class CMapLayers : public CComponent
 	int m_Type;
 	float m_OnlineStartTime;
 
-	array<CEnvPoint> m_lEnvPoints;
-	array<CEnvPoint> m_lEnvPointsMenu;
+	std::vector<CEnvPoint> m_vEnvPoints;
+	std::vector<CEnvPoint> m_vEnvPointsMenu;
 
 	CTile *m_pEggTiles;
 	int m_EggLayerWidth;
@@ -23,7 +24,7 @@ class CMapLayers : public CComponent
 
 	static void EnvelopeEval(float TimeOffset, int Env, float *pChannels, void *pUser);
 
-	void LoadEnvPoints(const CLayers *pLayers, array<CEnvPoint> &lEnvPoints);
+	void LoadEnvPoints(const CLayers *pLayers, std::vector<CEnvPoint> &vEnvPoints);
 	void LoadBackgroundMap();
 
 	void PlaceEasterEggs(const CLayers *pLayers);

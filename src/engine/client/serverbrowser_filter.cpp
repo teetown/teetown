@@ -350,10 +350,10 @@ void CServerBrowserFilter::Init(CConfig *pConfig, IFriends *pFriends, const char
 
 void CServerBrowserFilter::Clear()
 {
-	for(int i = 0; i < m_lFilters.size(); i++)
+	for(auto &Filter : m_vFilters)
 	{
-		m_lFilters[i].m_NumSortedServers = 0;
-		m_lFilters[i].m_NumSortedPlayers = 0;
+		Filter.m_NumSortedServers = 0;
+		Filter.m_NumSortedPlayers = 0;
 	}
 }
 
@@ -361,12 +361,11 @@ void CServerBrowserFilter::Sort(CServerEntry **ppServerlist, int NumServers, int
 {
 	m_ppServerlist = ppServerlist;
 	m_NumServers = NumServers;
-	for(int i = 0; i < m_lFilters.size(); i++)
+	for(auto &Filter : m_vFilters)
 	{
 		// check if we need to resort
-		CServerFilter *pFilter = &m_lFilters[i];
-		if((ResortFlags & RESORT_FLAG_FORCE) || ((ResortFlags & RESORT_FLAG_FAV) && pFilter->m_FilterInfo.m_SortHash & IServerBrowser::FILTER_FAVORITE) || pFilter->m_FilterInfo.m_SortHash != pFilter->GetSortHash())
-			pFilter->Sort();
+		if((ResortFlags & RESORT_FLAG_FORCE) || ((ResortFlags & RESORT_FLAG_FAV) && Filter.m_FilterInfo.m_SortHash & IServerBrowser::FILTER_FAVORITE) || Filter.m_FilterInfo.m_SortHash != Filter.GetSortHash())
+			Filter.Sort();
 	}
 }
 
@@ -393,24 +392,23 @@ int CServerBrowserFilter::AddFilter(const CServerFilterInfo *pFilterInfo)
 	Filter.m_NumSortedServers = 0;
 	Filter.m_SortedServersCapacity = 0;
 	Filter.m_pServerBrowserFilter = this;
-	m_lFilters.add(Filter);
+	m_vFilters.push_back(Filter);
 
-	return m_lFilters.size() - 1;
+	return (int)m_vFilters.size() - 1;
 }
 
 void CServerBrowserFilter::GetFilter(int Index, CServerFilterInfo *pFilterInfo) const
 {
-	pFilterInfo->Set(&m_lFilters[Index].m_FilterInfo);
+	pFilterInfo->Set(&m_vFilters[Index].m_FilterInfo);
 }
 
 void CServerBrowserFilter::SetFilter(int Index, const CServerFilterInfo *pFilterInfo)
 {
-	CServerFilter *pFilter = &m_lFilters[Index];
-	pFilter->m_FilterInfo.Set(pFilterInfo);
-	pFilter->Sort();
+	m_vFilters[Index].m_FilterInfo.Set(pFilterInfo);
+	m_vFilters[Index].Sort();
 }
 
 void CServerBrowserFilter::RemoveFilter(int Index)
 {
-	m_lFilters.remove_index(Index);
+	m_vFilters.erase(m_vFilters.begin() + Index);
 }

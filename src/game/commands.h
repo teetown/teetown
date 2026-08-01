@@ -4,9 +4,10 @@
 #define GAME_COMMANDS_H
 
 #include <base/system.h>
-#include <base/tl/array.h>
 
 #include <engine/console.h>
+
+#include <vector>
 
 class CCommandManager
 {
@@ -45,7 +46,7 @@ public:
 	typedef void (*FRemoveCommandHook)(const CCommand *pCommand, void *pContext);
 
 private:
-	array<CCommand> m_aCommands;
+	std::vector<CCommand> m_aCommands;
 
 	IConsole *m_pConsole;
 	void *m_pHookContext;
@@ -69,17 +70,17 @@ public:
 
 	const CCommand *GetCommand(const char *pCommand)
 	{
-		for(int i = 0; i < m_aCommands.size(); i++)
-			if(!str_comp(m_aCommands[i].m_aName, pCommand))
-				return &m_aCommands[i];
+		for(const auto &Command : m_aCommands)
+			if(!str_comp(Command.m_aName, pCommand))
+				return &Command;
 
-		return 0;
+		return nullptr;
 	}
 
 	const CCommand *GetCommand(int Index)
 	{
-		if(Index < 0 || Index >= m_aCommands.size())
-			return 0;
+		if(Index < 0 || Index >= (int)m_aCommands.size())
+			return nullptr;
 
 		return &m_aCommands[Index];
 	}
@@ -93,23 +94,23 @@ public:
 		if(!m_pConsole->ArgStringIsValid(pArgsFormat))
 			return 1;
 
-		int Index = m_aCommands.add(CCommand(pCommand, pHelpText, pArgsFormat, pfnCallback, pContext));
+		m_aCommands.emplace_back(pCommand, pHelpText, pArgsFormat, pfnCallback, pContext);
 		if(m_pfnNewCommandHook)
-			m_pfnNewCommandHook(&m_aCommands[Index], m_pHookContext);
+			m_pfnNewCommandHook(&m_aCommands.back(), m_pHookContext);
 
 		return 0;
 	}
 
 	int RemoveCommand(const char *pCommand)
 	{
-		for(int i = 0; i < m_aCommands.size(); i++)
+		for(auto it = m_aCommands.begin(); it != m_aCommands.end(); ++it)
 		{
-			if(!str_comp(m_aCommands[i].m_aName, pCommand))
+			if(!str_comp(it->m_aName, pCommand))
 			{
 				if(m_pfnRemoveCommandHook)
-					m_pfnRemoveCommandHook(&m_aCommands[i], m_pHookContext);
+					m_pfnRemoveCommandHook(&(*it), m_pHookContext);
 
-				m_aCommands.remove_index(i);
+				m_aCommands.erase(it);
 				return 0;
 			}
 		}
@@ -146,26 +147,25 @@ public:
 		return m_pConsole->ParseCommandArgs(pArgs, pCom->m_aArgsFormat, pCom->m_pfnCallback, &Context);
 	}
 
-	int Filter(array<bool> &aFilter, const char *pStr, bool Exact)
+	int Filter(std::vector<bool> &vFilter, const char *pStr, bool Exact)
 	{
-		dbg_assert(aFilter.size() == m_aCommands.size(), "filter size must match command count");
+		dbg_assert(vFilter.size() == m_aCommands.size(), "filter size must match command count");
 		if(!*pStr)
 		{
-			for(int i = 0; i < aFilter.size(); i++)
-				aFilter[i] = false;
+			std::fill(vFilter.begin(), vFilter.end(), false);
 			return 0;
 		}
 
 		int Filtered = 0;
 		if(Exact)
 		{
-			for(int i = 0; i < m_aCommands.size(); i++)
-				Filtered += (aFilter[i] = str_comp(m_aCommands[i].m_aName, pStr));
+			for(int i = 0; i < (int)m_aCommands.size(); i++)
+				Filtered += (vFilter[i] = str_comp(m_aCommands[i].m_aName, pStr));
 		}
 		else
 		{
-			for(int i = 0; i < m_aCommands.size(); i++)
-				Filtered += (aFilter[i] = str_find_nocase(m_aCommands[i].m_aName, pStr) != m_aCommands[i].m_aName);
+			for(int i = 0; i < (int)m_aCommands.size(); i++)
+				Filtered += (vFilter[i] = str_find_nocase(m_aCommands[i].m_aName, pStr) != m_aCommands[i].m_aName);
 		}
 
 		return Filtered;

@@ -50,9 +50,7 @@ void CChat::OnReset()
 		m_SelectedCommand = 0;
 		m_CommandStart = 0;
 
-		m_aFilter.set_size(8); //Should help decrease allocations
-		for(int i = 0; i < m_aFilter.size(); i++)
-			m_aFilter[i] = false;
+		m_vFilter.assign(8, false); //Should help decrease allocations
 
 		m_FilteredCount = 0;
 
@@ -1350,12 +1348,12 @@ void CChat::HandleCommands(float x, float y, float w)
 		const int ActiveCount = m_CommandManager.CommandCount() - m_FilteredCount;
 		const int DisplayCount = minimum(ActiveCount, 16);
 
-		if(DisplayCount && m_aFilter[m_SelectedCommand])
+		if(DisplayCount && m_vFilter[m_SelectedCommand])
 		{
 			m_SelectedCommand = -1;
 			NextActiveCommand(&m_SelectedCommand);
 		}
-		if(DisplayCount && m_aFilter[m_CommandStart])
+		if(DisplayCount && m_vFilter[m_CommandStart])
 		{
 			NextActiveCommand(&m_CommandStart);
 		}
@@ -1400,7 +1398,7 @@ void CChat::HandleCommands(float x, float y, float w)
 			y -= (DisplayCount + 2) * LineHeight;
 			for(int i = m_CommandStart, j = 0; j < DisplayCount && i < m_CommandManager.CommandCount(); i++)
 			{
-				if(m_aFilter[i])
+				if(m_vFilter[i])
 					continue;
 
 				const CCommandManager::CCommand *pCommand = m_CommandManager.GetCommand(i);
@@ -1621,11 +1619,11 @@ void CChat::Com_Befriend(IConsole::IResult *pResult, void *pContext)
 
 int CChat::FilterChatCommands(const char *pLine)
 {
-	m_aFilter.set_size(m_CommandManager.CommandCount());
+	m_vFilter.resize(m_CommandManager.CommandCount());
 
 	char aCommand[16];
 	str_format(aCommand, sizeof(aCommand), "%.*s", str_span(pLine + 1, " "), pLine + 1);
-	m_FilteredCount = m_CommandManager.Filter(m_aFilter, aCommand, str_find(pLine, " ") ? true : false);
+	m_FilteredCount = m_CommandManager.Filter(m_vFilter, aCommand, str_find(pLine, " ") ? true : false);
 
 	return m_FilteredCount;
 }
@@ -1633,7 +1631,7 @@ int CChat::FilterChatCommands(const char *pLine)
 int CChat::GetFirstActiveCommand()
 {
 	for(int i = 0; i < m_CommandManager.CommandCount(); i++)
-		if(!m_aFilter[i])
+		if(!m_vFilter[i])
 			return i;
 	return -1;
 }
@@ -1641,7 +1639,7 @@ int CChat::GetFirstActiveCommand()
 int CChat::NextActiveCommand(int *pIndex)
 {
 	(*pIndex)++;
-	while(*pIndex < m_aFilter.size() && m_aFilter[*pIndex])
+	while(*pIndex < (int)m_vFilter.size() && m_vFilter[*pIndex])
 		(*pIndex)++;
 	return *pIndex;
 }
@@ -1649,7 +1647,7 @@ int CChat::NextActiveCommand(int *pIndex)
 int CChat::PreviousActiveCommand(int *pIndex)
 {
 	(*pIndex)--;
-	while(*pIndex >= 0 && m_aFilter[*pIndex])
+	while(*pIndex >= 0 && m_vFilter[*pIndex])
 		(*pIndex)--;
 	return *pIndex;
 }
@@ -1659,7 +1657,7 @@ int CChat::GetActiveCountRange(int i, int j)
 	int Count = 0;
 	while(i < j)
 	{
-		if(!m_aFilter[i++])
+		if(!m_vFilter[i++])
 			Count++;
 	}
 	return Count;
